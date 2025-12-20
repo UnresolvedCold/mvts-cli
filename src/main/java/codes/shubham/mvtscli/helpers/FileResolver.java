@@ -22,7 +22,7 @@ public class FileResolver {
               long a1 = Files.getLastModifiedTime(a).toMillis();
               long b1 = Files.getLastModifiedTime(b).toMillis();
               return Long.compare(b1, a1);
-            } catch (IOException _) {}
+            } catch (IOException e) {}
 
             return 0;
           })

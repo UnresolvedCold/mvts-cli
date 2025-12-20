@@ -1,0 +1,43 @@
+name: Native Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  linux-native:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image: true
+
+      - name: Build native binary
+        run: mvn -Pnative native:compile
+
+      - name: Rename binary
+        run: |
+          ls targets
+          ls targets/mvts
+          mkdir -p dist
+          mv target/mvts-cli dist/mvts-cli-linux-x86_64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mvts-linux
+          path: dist/mvts-cli-linux-x86_64
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/mvts-cli-linux-x86_64

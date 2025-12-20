@@ -11,8 +11,8 @@
     <name>mvts-cli</name>
 
     <properties>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <picocli.version>4.7.6</picocli.version>
     </properties>
@@ -22,6 +22,13 @@
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
             <version>${picocli.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli-codegen</artifactId>
+            <version>${picocli.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -48,6 +55,18 @@
                             <Implementation-Vendor>${project.groupId}</Implementation-Vendor>
                         </manifestEntries>
                     </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <version>0.10.2</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <imageName>mvts</imageName>
+                    <mainClass>codes.shubham.mvtscli.Main</mainClass>
+                    <fallback>false</fallback>
+                    <verbose>true</verbose>
                 </configuration>
             </plugin>
         </plugins>

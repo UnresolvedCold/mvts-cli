@@ -16,7 +16,7 @@ import picocli.CommandLine;
 public class Main implements Runnable {
     @Override
     public void run() {
-        IO.println("Use a subcommand. Try --help");
+        System.out.println("Use a subcommand. Try --help");
     }
 
     public static void main(String[] args) {
