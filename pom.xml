@@ -63,7 +63,7 @@
                 <version>0.10.2</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <imageName>mvts</imageName>
+                    <imageName>mvts-cli</imageName>
                     <mainClass>codes.shubham.mvtscli.Main</mainClass>
                     <fallback>false</fallback>
                     <verbose>true</verbose>
