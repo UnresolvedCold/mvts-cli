@@ -4,7 +4,8 @@ import java.io.FileInputStream;
 import java.util.Properties;
 
 public enum ApplicationProperties {
-  MVTS_JAR_FILE_LOCATION("MVTS_JAR_FILE_LOCATION", "/home/shubham.codes/");
+  MVTS_JAR_FILE_LOCATION("MVTS_JAR_FILE_LOCATION", "/home/shubham.codes/"),
+  LOG_DIR("LOG_DIR", "data/logs");
 
   private String key;
   private String value;

@@ -1,6 +1,7 @@
 package codes.shubham.mvtscli;
 
 import codes.shubham.mvtscli.commands.Info;
+import codes.shubham.mvtscli.commands.Search;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -8,7 +9,8 @@ import picocli.CommandLine;
     mixinStandardHelpOptions = true,
     description = "A MVTS companion tool with lots of features",
     subcommands = {
-        Info.class
+        Info.class,
+        Search.class
     }
 )
 public class Main implements Runnable {
