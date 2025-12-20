@@ -8,8 +8,8 @@ public class Info implements Runnable {
 
   @Override
   public void run() {
-    IO.println(BuildInfo.name());
-    IO.println("Version: " + BuildInfo.version());
-    IO.println("Vendor: " + BuildInfo.vendor());
+//    IO.println(BuildInfo.name());
+//    IO.println("Version: " + BuildInfo.version());
+//    IO.println("Vendor: " + BuildInfo.vendor());
   }
 }
