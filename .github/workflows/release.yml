@@ -27,7 +27,6 @@ jobs:
       - name: Rename binary
         run: |
           ls target
-          ls target/mvts
           mkdir -p dist
           mv target/mvts-cli dist/mvts-cli-linux-x86_64
 
