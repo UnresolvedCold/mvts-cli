@@ -90,7 +90,9 @@ public class Search implements Runnable {
   public static void main(String[] args){
     CommandLine commandLine = new CommandLine(new Search());
     commandLine.execute(new String[]{"message", "r"});
+    commandLine = new CommandLine(new Search());
     commandLine.execute(new String[]{"message", "r","--files", "*"});
+    commandLine = new CommandLine(new Search());
     commandLine.execute(new String[]{"message", "r","--files", "scheduler.*"});
   }
 }
