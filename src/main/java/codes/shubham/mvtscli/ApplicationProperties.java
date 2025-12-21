@@ -1,6 +1,8 @@
 package codes.shubham.mvtscli;
 
 import java.io.FileInputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 public enum ApplicationProperties {
@@ -9,14 +11,34 @@ public enum ApplicationProperties {
 
   private String key;
   private String value;
+  private static String envFileLocation;
 
   static {
+    loadApplicationProperties();
+  }
+
+  public static void loadApplicationProperties() {
     Properties properties = new Properties();
 
-    String envFileLocation = System.getenv("MVTS_CLI_PROPERTIES_FILE");
+    envFileLocation = System.getenv("MVTS_CLI_PROPERTIES_FILE");
 
     if (envFileLocation == null) {
-      envFileLocation = "config/mvts.cli.properties";
+      envFileLocation = Paths.get(
+          System.getProperty("user.home"),
+          ".config",
+          "mvts-cli",
+          "mvts.cli.properties"
+      ).toString();
+    }
+
+    // Create an empty properties file if it does not exist
+    if (!(Paths.get(envFileLocation).toFile().exists())) {
+      try {
+        Files.createDirectories(Paths.get(envFileLocation).getParent());
+        Files.createFile(Paths.get(envFileLocation));
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
 
     try {
@@ -29,7 +51,6 @@ public enum ApplicationProperties {
         property.value = properties.getProperty(property.key);
       }
     }
-
   }
 
   ApplicationProperties(String key, String value) {
@@ -37,8 +58,13 @@ public enum ApplicationProperties {
     this.value = value;
   }
 
+  // Set and write to file
   public void setValue(String value) {
     this.value = value;
+  }
+
+  public static String getEnvFileLocation() {
+    return envFileLocation;
   }
 
   public String getValue() {
