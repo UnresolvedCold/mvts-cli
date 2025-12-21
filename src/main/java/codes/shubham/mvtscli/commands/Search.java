@@ -48,9 +48,9 @@ public class Search implements Runnable {
     List<Path> targets;
 
     if (files == null || files.isEmpty()) {
-      targets = List.of(Path.of(ApplicationProperties.LOG_DIR.getValue()+"/scheduler.log"));
+      targets = FileResolver.resolve("scheduler.log");
     } else if (files.contains("*")) {
-      targets = FileResolver.resolve(ApplicationProperties.LOG_DIR.getValue()+"/.*");
+      targets = FileResolver.resolve("*");
     } else {
       targets = files.stream()
           .flatMap(f -> {
@@ -62,8 +62,6 @@ public class Search implements Runnable {
           })
           .toList();
     }
-
-    System.out.println("Targets: "+targets.toString());
 
     for (Path file : targets) {
       pool.submit(() -> {
@@ -87,5 +85,12 @@ public class Search implements Runnable {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static void main(String[] args){
+    CommandLine commandLine = new CommandLine(new Search());
+    commandLine.execute(new String[]{"message", "r"});
+    commandLine.execute(new String[]{"message", "r","--files", "*"});
+    commandLine.execute(new String[]{"message", "r","--files", "scheduler.*"});
   }
 }
