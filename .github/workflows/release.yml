@@ -16,30 +16,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
         with:
+          distribution: 'temurin'
           java-version: '21'
-          distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image: true
 
-      - name: Build native binary
-        run: mvn -Pnative native:compile
+      - name: Build jar file
+        run: mvn clean package -DskipTests
 
       - name: Rename binary
         run: |
-          ls target
           mkdir -p dist
-          mv target/mvts-cli dist/mvts-cli-linux-x86_64
+          mv target/mvts-cli-*.jar dist/mvts-cli.jar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: mvts-linux
-          path: dist/mvts-cli-linux-x86_64
+          path: dist/mvts-cli.jar
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/mvts-cli-linux-x86_64
+          files: dist//mvts-cli.jar
