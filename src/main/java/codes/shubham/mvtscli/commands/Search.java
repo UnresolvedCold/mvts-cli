@@ -8,9 +8,11 @@ import codes.shubham.mvtscli.search.IOSearchMode;
 import codes.shubham.mvtscli.source.GZipFileSource;
 import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.PlainFileSource;
+import org.joda.time.DateTime;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,11 +38,11 @@ public class Search implements Runnable {
   String entity;
 
   @CommandLine.Option(
-      names = {"--files", "-f"},
-      description = "Files to search",
+      names = {"--dates", "-d"},
+      description = "Dates to search",
       arity = "0..*"
   )
-  List<String> files;
+  List<String> dates;
 
 
   @Override
@@ -48,23 +50,7 @@ public class Search implements Runnable {
     IOSearchMode mode = IOSearchMode.getMode(type);
     final ILogSearcher searcher = getSearcher(mode);
 
-    List<Path> targets;
-
-    if (files == null || files.isEmpty()) {
-      targets = FileResolver.resolve("scheduler.log");
-    } else if (files.contains("*")) {
-      targets = FileResolver.resolve("*");
-    } else {
-      targets = files.stream()
-          .flatMap(f -> {
-            try {
-              return FileResolver.resolve(f).stream();
-            } catch (Exception e) {
-              return Stream.empty();
-            }
-          })
-          .toList();
-    }
+    final List<Path> targets = getPaths();
 
     for (Path file : targets) {
       pool.submit(() -> {
@@ -94,6 +80,44 @@ public class Search implements Runnable {
     }
   }
 
+  private List<Path> getPaths() {
+    List<Path> targets = new ArrayList<>();
+
+    if (dates == null || dates.isEmpty()) {
+      return FileResolver.resolve("scheduler.log");
+    }
+
+    List<DateTime> dateTimes = dates.stream()
+        .map(DateTime::parse)
+        .toList();
+
+    DateTime today = DateTime.now().withTimeAtStartOfDay();
+
+    boolean containsToday = dateTimes.stream()
+        .anyMatch(dt -> dt.withTimeAtStartOfDay().isEqual(today));
+
+    if (containsToday) {
+      targets.addAll(FileResolver.resolve("scheduler.log"));
+    }
+
+    for (DateTime dt : dateTimes) {
+      if (dt.withTimeAtStartOfDay().isEqual(today)) {
+        continue;
+      }
+
+      String date = dt.toString("yyyy-MM-dd");
+      String pattern = "scheduler." + date + ".*.log.gz";
+
+      try {
+        targets.addAll(FileResolver.resolve(pattern));
+      } catch (Exception ignored) {
+        // intentionally ignore missing logs
+      }
+    }
+
+    return targets;
+  }
+
   private ILogSearcher getSearcher(IOSearchMode mode) {
     if (mode == IOSearchMode.REGEX) {
       return new RegexSearcher();
@@ -107,7 +131,7 @@ public class Search implements Runnable {
 //    commandLine.execute(new String[]{"message", "rXQOxO1uRLG9tG2VuJMhWw=="});
     commandLine.execute(new String[]{"r", "rXQOxO1uRLG9tG2VuJMhWw==.*before validation"});
 //    commandLine = new CommandLine(new Search());
-//    commandLine.execute(new String[]{"message", "r","--files", "*"});
+//    commandLine.execute(new String[]{"r", "rXQOxO1uRLG9tG2VuJMhWw==.*before validation","--dates", "2025-12-12"});
 //    commandLine = new CommandLine(new Search());
 //    commandLine.execute(new String[]{"message", "r","--files", "scheduler.*"});
   }
