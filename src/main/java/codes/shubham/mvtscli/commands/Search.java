@@ -1,9 +1,10 @@
 package codes.shubham.mvtscli.commands;
 
-import codes.shubham.mvtscli.ApplicationProperties;
 import codes.shubham.mvtscli.helpers.FileResolver;
-import codes.shubham.mvtscli.helpers.JsonSearcher;
-import codes.shubham.mvtscli.search.SearchMode;
+import codes.shubham.mvtscli.search.ILogSearcher;
+import codes.shubham.mvtscli.search.JsonSearcher;
+import codes.shubham.mvtscli.search.RegexSearcher;
+import codes.shubham.mvtscli.search.IOSearchMode;
 import codes.shubham.mvtscli.source.GZipFileSource;
 import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.PlainFileSource;
@@ -26,11 +27,13 @@ public class Search implements Runnable {
       Math.min(1, Runtime.getRuntime().availableProcessors())
   );
 
-  @CommandLine.Parameters(index = "0", description = "message|output")
+  @CommandLine.Parameters(index = "0",
+      description = "message|m|output|o|regex|r")
   String type;
 
-  @CommandLine.Parameters(index = "1", description = "entity id")
-  String entityID;
+  @CommandLine.Parameters(index = "1",
+      description = "entity, e.g., request ID or regex")
+  String entity;
 
   @CommandLine.Option(
       names = {"--files", "-f"},
@@ -42,8 +45,8 @@ public class Search implements Runnable {
 
   @Override
   public void run() {
-    SearchMode mode = SearchMode.valueOf(type.toUpperCase());
-    JsonSearcher searcher = new JsonSearcher();
+    IOSearchMode mode = IOSearchMode.getMode(type);
+    final ILogSearcher searcher = getSearcher(mode);
 
     List<Path> targets;
 
@@ -71,7 +74,11 @@ public class Search implements Runnable {
                   ? new GZipFileSource(file)
                   : new PlainFileSource(file);
 
-          searcher.search(source, mode, entityID);
+          List<String> res = searcher.search(source, mode, entity);
+
+          synchronized (System.out) {
+            res.forEach(System.out::println);
+          }
 
         } catch (Exception e) {
           System.err.println("Failed: " + file + " -> " + e.getMessage());
@@ -87,12 +94,21 @@ public class Search implements Runnable {
     }
   }
 
+  private ILogSearcher getSearcher(IOSearchMode mode) {
+    if (mode == IOSearchMode.REGEX) {
+      return new RegexSearcher();
+    } else {
+      return new JsonSearcher();
+    }
+  }
+
   public static void main(String[] args){
     CommandLine commandLine = new CommandLine(new Search());
-    commandLine.execute(new String[]{"message", "r"});
-    commandLine = new CommandLine(new Search());
-    commandLine.execute(new String[]{"message", "r","--files", "*"});
-    commandLine = new CommandLine(new Search());
-    commandLine.execute(new String[]{"message", "r","--files", "scheduler.*"});
+//    commandLine.execute(new String[]{"message", "rXQOxO1uRLG9tG2VuJMhWw=="});
+    commandLine.execute(new String[]{"r", "rXQOxO1uRLG9tG2VuJMhWw==.*before validation"});
+//    commandLine = new CommandLine(new Search());
+//    commandLine.execute(new String[]{"message", "r","--files", "*"});
+//    commandLine = new CommandLine(new Search());
+//    commandLine.execute(new String[]{"message", "r","--files", "scheduler.*"});
   }
 }

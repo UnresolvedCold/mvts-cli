@@ -14,6 +14,7 @@ public class FileResolver {
     PathMatcher matcher =
         FileSystems.getDefault().getPathMatcher("glob:" + pattern);
 
+    // Search latest logs first
     try (Stream<Path> s = Files.list(dir)) {
       return s
           .filter(p -> matcher.matches(p.getFileName()))
