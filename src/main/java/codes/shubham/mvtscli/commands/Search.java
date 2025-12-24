@@ -1,13 +1,9 @@
 package codes.shubham.mvtscli.commands;
 
 import codes.shubham.mvtscli.helpers.FileResolver;
-import codes.shubham.mvtscli.index.CursorStore;
-import codes.shubham.mvtscli.index.IndexWriter;
-import codes.shubham.mvtscli.index.ReadThroughIndexer;
-import codes.shubham.mvtscli.search.ILogSearcher;
-import codes.shubham.mvtscli.search.JsonSearcher;
-import codes.shubham.mvtscli.search.RegexSearcher;
-import codes.shubham.mvtscli.search.IOSearchMode;
+import codes.shubham.mvtscli.search.ILogHandler;
+import codes.shubham.mvtscli.search.LogRunner;
+import codes.shubham.mvtscli.search.RegexSearchHandler;
 import codes.shubham.mvtscli.source.GZipFileSource;
 import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.PlainFileSource;
@@ -20,7 +16,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 @CommandLine.Command(
     name = "search",
@@ -50,17 +45,11 @@ public class Search implements Runnable {
 
   @Override
   public void run() {
-    IOSearchMode mode = IOSearchMode.getMode(type);
-    final ILogSearcher searcher = getSearcher(mode);
-    Path base = Path.of(System.getProperty("user.home"), ".mvts");
-    CursorStore cursors =
-        new CursorStore(base.resolve("file-cursors.json"));
-    IndexWriter writer =
-        new IndexWriter(base.resolve("request-index.jsonl"));
-    ReadThroughIndexer indexer =
-        new ReadThroughIndexer(writer);
-
     final List<Path> targets = getPaths();
+
+    List<ILogHandler> handlers = List.of(
+        new RegexSearchHandler(entity)
+    );
 
     for (Path file : targets) {
       pool.submit(() -> {
@@ -68,19 +57,10 @@ public class Search implements Runnable {
           ILogSource source =
               file.toString().endsWith(".gz")
                   ? new GZipFileSource(file)
-                  : new PlainFileSource(file, cursors);
+                  : new PlainFileSource(file);
 
-          searcher.search(source, mode, entity,
-              (line, lineNo) -> {
-//                synchronized (System.out) {
-//                  System.out.println(line);
-//                }
-              },
-              (line, lineNo) -> {
-                indexer.onLine(file, line, lineNo);
-              }
-          );
-
+          LogRunner runner = new LogRunner();
+          runner.run(source, handlers);
         } catch (Exception e) {
           System.err.println("Failed: " + file + " -> " + e.getMessage());
         }
@@ -131,14 +111,6 @@ public class Search implements Runnable {
     }
 
     return targets;
-  }
-
-  private ILogSearcher getSearcher(IOSearchMode mode) {
-    if (mode == IOSearchMode.REGEX) {
-      return new RegexSearcher();
-    } else {
-      return new JsonSearcher();
-    }
   }
 
   public static void main(String[] args){

@@ -8,8 +8,10 @@ import java.util.zip.GZIPInputStream;
 
 public class GZipFileSource implements ILogSource {
   private final BufferedReader reader;
+  private final String filePath;
 
   public GZipFileSource(Path path) throws IOException {
+    filePath = path.getFileName().toString();
     InputStream in = new FileInputStream(path.toFile());
     this.reader = new BufferedReader(
         new InputStreamReader(
@@ -26,5 +28,10 @@ public class GZipFileSource implements ILogSource {
   @Override
   public void close() throws Exception {
     reader.close();
+  }
+
+  @Override
+  public String getFilePath() {
+    return filePath;
   }
 }
