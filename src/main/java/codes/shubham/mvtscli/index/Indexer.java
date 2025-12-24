@@ -1,9 +1,6 @@
 package codes.shubham.mvtscli.index;
 
-import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.LogLine;
-import codes.shubham.mvtscli.source.PlainFileSource;
-import codes.shubham.mvtscli.source.position.Position;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -108,7 +105,7 @@ public class Indexer  {
   }
 
   private void commitToFile() {
-    try {
+    try{
       Files.createDirectories(INDEX_FILE.getParent());
 
       Path tmp = INDEX_FILE.resolveSibling(INDEX_FILE.getFileName() + ".tmp");
@@ -130,7 +127,7 @@ public class Indexer  {
 
       logger.debug("Index committed to {}", INDEX_FILE);
 
-    } catch (IOException e) {
+    } catch (Exception e) {
       logger.error("Failed to commit index", e);
     }
   }

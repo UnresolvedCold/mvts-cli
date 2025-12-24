@@ -6,16 +6,12 @@ import codes.shubham.mvtscli.index.IndexPosition;
 import codes.shubham.mvtscli.index.IndexValidateHandler;
 import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.search.*;
-import codes.shubham.mvtscli.source.GZipFileSource;
 import codes.shubham.mvtscli.source.ILogSource;
-import codes.shubham.mvtscli.source.PlainFileSource;
-import codes.shubham.mvtscli.source.position.BytePosition;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +28,7 @@ public class Search implements Runnable {
   private static Logger logger = LoggerFactory.getLogger(Search.class);
 
   ExecutorService pool = Executors.newFixedThreadPool(
-      Math.min(1, Runtime.getRuntime().availableProcessors())
+      Math.max(1, Runtime.getRuntime().availableProcessors())
   );
 
   @CommandLine.Parameters(index = "0",
@@ -84,14 +80,12 @@ public class Search implements Runnable {
         }
 
         try {
-          ILogSource source = getSource(file, offset1, offset2);
+          ILogSource source = FileResolver.getSource(file, offset1, offset2);
 
           LogRunner runner = new LogRunner();
           List<ILogHandler> handlers = new ArrayList<>();
 
           IOSearchMode mode = IOSearchMode.getMode(type);
-
-          handlers.add(new IndexValidateHandler(indexer, requestID));
 
           if (mode == IOSearchMode.MESSAGE || mode == IOSearchMode.OUTPUT) {
             logger.trace("Searching for input/output, requestID: {}", requestID);
@@ -101,11 +95,6 @@ public class Search implements Runnable {
             handlers.add(new RegexSearchHandler(requestID, regexPattern));
           } else {
             throw new IllegalArgumentException("Unsupported search type: " + type);
-          }
-
-          if (!searchingIndexed) {
-            logger.debug("Indexing file {} ...", file);
-            handlers.add(new IndexHandler(indexer));
           }
 
           runner.run(source, handlers);
@@ -121,15 +110,6 @@ public class Search implements Runnable {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
-
-    indexer.commit();
-  }
-
-  private static ILogSource getSource(Path file, long offset1, long offset2) throws IOException {
-    if (file.endsWith(".gz")) {
-//      return new GZipFileSource(file, offset1, offset2);
-    }
-    return new PlainFileSource(file, offset1, offset2);
   }
 
   private List<Path> getPaths() {

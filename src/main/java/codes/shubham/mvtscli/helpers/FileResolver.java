@@ -1,6 +1,8 @@
 package codes.shubham.mvtscli.helpers;
 
 import codes.shubham.mvtscli.ApplicationProperties;
+import codes.shubham.mvtscli.source.ILogSource;
+import codes.shubham.mvtscli.source.PlainFileSource;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -31,5 +33,12 @@ public class FileResolver {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static ILogSource getSource(Path file, long offset1, long offset2) throws IOException {
+    if (file.endsWith(".gz")) {
+//      return new GZipFileSource(file, offset1, offset2);
+    }
+    return new PlainFileSource(file, offset1, offset2);
   }
 }
