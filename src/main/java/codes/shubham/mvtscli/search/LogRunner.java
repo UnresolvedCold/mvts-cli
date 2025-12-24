@@ -10,18 +10,13 @@ import java.util.List;
 public final class LogRunner {
   public void run(ILogSource source, List<ILogHandler> handlerList) {
     try (source) {
-      long[] lineNo = {0};
-
       source
-          .lines()
+          .logLines()
           .forEach(
-              line -> {
-                lineNo[0]++;
-                if (line == null || line.isEmpty()) return;
-
+              logline -> {
                 if (handlerList != null && !handlerList.isEmpty()) {
                   handlerList.forEach(h->
-                    h.handle(line, lineNo[0], source.getFilePath()));
+                    h.handle(logline));
                 }
               });
     } catch (Exception e) {

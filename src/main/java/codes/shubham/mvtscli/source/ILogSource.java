@@ -4,6 +4,5 @@ import java.io.IOException;
 import java.util.stream.Stream;
 
 public interface ILogSource extends AutoCloseable {
-  Stream<String> lines() throws IOException;
-  String getFilePath();
+  Stream<LogLine> logLines() throws IOException;
 }

@@ -1,6 +1,7 @@
 package codes.shubham.mvtscli.index;
 
 import codes.shubham.mvtscli.search.ILogHandler;
+import codes.shubham.mvtscli.source.LogLine;
 
 public class IndexHandler implements ILogHandler {
   private final Indexer indexer;
@@ -11,7 +12,7 @@ public class IndexHandler implements ILogHandler {
 
 
   @Override
-  public void handle(String line, long lineNumber, String filePath) {
-    indexer.index(line, filePath, lineNumber);
+  public void handle(LogLine logline) {
+    indexer.index(logline);
   }
 }

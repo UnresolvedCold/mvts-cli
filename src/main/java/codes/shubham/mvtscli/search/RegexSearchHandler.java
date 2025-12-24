@@ -1,5 +1,7 @@
 package codes.shubham.mvtscli.search;
 
+import codes.shubham.mvtscli.source.LogLine;
+
 public class RegexSearchHandler implements  ILogHandler {
 
   private final String searchTerm;
@@ -9,12 +11,12 @@ public class RegexSearchHandler implements  ILogHandler {
   }
 
   @Override
-  public void handle(String line, long lineNumber, String filePath) {
-    if (line == null || line.isEmpty()) return;
+  public void handle(LogLine logLine) {
+    if (logLine.line() == null || logLine.line().isEmpty()) return;
 
-    if (line.matches(".*" + searchTerm + ".*")) {
+    if (logLine.line().matches(".*" + searchTerm + ".*")) {
       synchronized (System.out) {
-        System.out.println(line);
+        System.out.println(logLine.line());
       }
     }
   }

@@ -1,6 +1,8 @@
 package codes.shubham.mvtscli.commands;
 
 import codes.shubham.mvtscli.helpers.FileResolver;
+import codes.shubham.mvtscli.index.IndexHandler;
+import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.search.ILogHandler;
 import codes.shubham.mvtscli.search.LogRunner;
 import codes.shubham.mvtscli.search.RegexSearchHandler;
@@ -47,9 +49,9 @@ public class Search implements Runnable {
   public void run() {
     final List<Path> targets = getPaths();
 
-    List<ILogHandler> handlers = List.of(
-        new RegexSearchHandler(entity)
-    );
+    Indexer indexer = new Indexer();
+
+    List<ILogHandler> handlers = List.of(new RegexSearchHandler(entity), new IndexHandler(indexer));
 
     for (Path file : targets) {
       pool.submit(() -> {
@@ -57,7 +59,7 @@ public class Search implements Runnable {
           ILogSource source =
               file.toString().endsWith(".gz")
                   ? new GZipFileSource(file)
-                  : new PlainFileSource(file);
+                  : new PlainFileSource(file, 0);
 
           LogRunner runner = new LogRunner();
           runner.run(source, handlers);
@@ -114,12 +116,20 @@ public class Search implements Runnable {
   }
 
   public static void main(String[] args){
-    CommandLine commandLine = new CommandLine(new Search());
-//    commandLine.execute(new String[]{"message", "rXQOxO1uRLG9tG2VuJMhWw=="});
-    commandLine.execute(new String[]{"r", "rXQOxO1uRLG9tG2VuJMhWw==.*before validation"});
-//    commandLine = new CommandLine(new Search());
-//    commandLine.execute(new String[]{"r", "rXQOxO1uRLG9tG2VuJMhWw==.*before validation","--dates", "2025-12-12"});
-//    commandLine = new CommandLine(new Search());
-//    commandLine.execute(new String[]{"message", "r","--files", "scheduler.*"});
+    {
+      CommandLine commandLine = new CommandLine(new Search());
+      long start = System.currentTimeMillis();
+      commandLine.execute(new String[] {"r", "rXQOxO1uRLG9tG2VuJMhWw=="});
+      long end = System.currentTimeMillis();
+      System.out.println("Time taken: " + (end - start) + " ms");
+    }
+
+    {
+      CommandLine commandLine = new CommandLine(new Search());
+      long start = System.currentTimeMillis();
+      commandLine.execute(new String[] {"r", "rXQOxO1uRLG9tG2VuJMhWw=="});
+      long end = System.currentTimeMillis();
+      System.out.println("Time taken: " + (end - start) + " ms");
+    }
   }
 }
