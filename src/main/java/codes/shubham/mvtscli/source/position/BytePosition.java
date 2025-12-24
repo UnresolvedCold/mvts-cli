@@ -8,4 +8,9 @@ public record BytePosition(long byteOffset) implements Position {
     }
     throw  new RuntimeException();
   }
+
+  @Override
+  public long offset() {
+    return byteOffset;
+  }
 }

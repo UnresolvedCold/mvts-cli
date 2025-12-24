@@ -5,6 +5,7 @@ import codes.shubham.mvtscli.index.IndexHandler;
 import codes.shubham.mvtscli.index.IndexPosition;
 import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.search.*;
+import codes.shubham.mvtscli.source.GZipFileSource;
 import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.PlainFileSource;
 import codes.shubham.mvtscli.source.position.BytePosition;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,8 +68,8 @@ public class Search implements Runnable {
 
     for (Path file : targets) {
       pool.submit(() -> {
-        int byteOffset1 = 0;
-        int byteOffset2 = -1;
+        long offset1 = 0;
+        long offset2 = -1;
         boolean searchingIndexed = false;
 
         IndexPosition position = indexer.search(requestID, file.getFileName().toString());
@@ -75,13 +77,13 @@ public class Search implements Runnable {
         if (position != null) {
           logger.debug("Found index position for {} in file {}: {} - {}",
               requestID, file, position.start(), position.end());
-          byteOffset1 = (int) ((BytePosition)position.start()).byteOffset();
-          byteOffset2 = (int) ((BytePosition)position.end()).byteOffset();
+          offset1 = position.start().offset();
+          offset2 = position.end().offset();
           searchingIndexed = true;
         }
 
         try {
-          ILogSource source = new PlainFileSource(file, byteOffset1, byteOffset2);
+          ILogSource source = getSource(file, offset1, offset2);
 
           LogRunner runner = new LogRunner();
           List<ILogSearchHandler> handlers = new ArrayList<>();
@@ -116,6 +118,13 @@ public class Search implements Runnable {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private static ILogSource getSource(Path file, long offset1, long offset2) throws IOException {
+    if (file.endsWith(".gz")) {
+//      return new GZipFileSource(file, offset1, offset2);
+    }
+    return new PlainFileSource(file, offset1, offset2);
   }
 
   private List<Path> getPaths() {

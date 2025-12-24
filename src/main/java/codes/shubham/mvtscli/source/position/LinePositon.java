@@ -5,4 +5,9 @@ public record LinePositon(long lineNumber) implements Position {
   public int compare(Position other) {
     return 0;
   }
+
+  @Override
+  public long offset() {
+    return lineNumber;
+  }
 }
