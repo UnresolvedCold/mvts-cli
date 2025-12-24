@@ -2,11 +2,8 @@ package codes.shubham.mvtscli.source;
 
 import codes.shubham.mvtscli.source.position.BytePosition;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
-import java.nio.channels.Channels;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -17,76 +14,75 @@ import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class PlainFileSource implements ILogSource {
-  private final Path path;
-  private FileChannel channel;
-  private BufferedReader reader;
-  private String filePath;
+public class PlainFileSource implements ILogSource, AutoCloseable {
 
-  public PlainFileSource(Path path, int byteOffset) {
+  private final Path path;
+  private final String filePath;
+  private FileChannel channel;
+  private MappedByteBuffer buffer;
+
+  public PlainFileSource(Path path) throws IOException {
+    this(path, 0L);
+  }
+
+  public PlainFileSource(Path path, long startOffset) throws IOException {
     this.path = path;
     this.filePath = path.getFileName().toString();
-    try {
-    openAt(byteOffset);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    openAt(startOffset);
   }
 
   private void openAt(long offset) throws IOException {
     this.channel = FileChannel.open(path, StandardOpenOption.READ);
-    this.channel.position(offset);
-    this.reader = new BufferedReader(
-        new InputStreamReader(Channels.newInputStream(channel), StandardCharsets.UTF_8)
-    );
-
-    // resync if offset is not zero
-    if (offset > 0) {
-      reader.readLine(); // discard partial line
-    }
+    long size = channel.size();
+    this.buffer = channel.map(FileChannel.MapMode.READ_ONLY, offset, size - offset);
   }
 
   @Override
-  public Stream<LogLine> logLines() {
-    Iterator<LogLine> it =
-        new Iterator<>() {
-          String next;
-          long offset;
+  public Stream<LogLine> logLines() throws IOException {
+    Iterator<LogLine> it = new Iterator<>() {
+      private long currentOffset = channel.position();
+      private String nextLine;
 
-          @Override
-          public boolean hasNext() {
-            try {
-              offset = channel.position();
-              next = reader.readLine();
-              return next != null;
-            } catch (IOException e) {
-              throw new UncheckedIOException(e);
-            }
-          }
+      @Override
+      public boolean hasNext() {
+        nextLine = readLine();
+        return nextLine != null;
+      }
 
-          @Override
-          public LogLine next() {
-            return new LogLine(filePath, next, new BytePosition(offset));
-          }
-        };
+      @Override
+      public LogLine next() {
+        LogLine line = new LogLine(filePath, nextLine, new BytePosition(currentOffset));
+        currentOffset += nextLine.getBytes(StandardCharsets.UTF_8).length + 1; // +1 for '\n'
+        return line;
+      }
+    };
 
-        return StreamSupport.stream(
-            Spliterators.spliteratorUnknownSize(
-                it,
-                Spliterator.ORDERED | Spliterator.NONNULL
-            ),
-            false
-        )
-        .onClose(() -> {
-          try {
-            close();
-          } catch (Exception ignored) {}
-        });
+    return StreamSupport.stream(
+        Spliterators.spliteratorUnknownSize(it, Spliterator.ORDERED | Spliterator.NONNULL),
+        false
+    ).onClose(() -> {
+      try {
+        close();
+      } catch (Exception ignored) {}
+    });
+  }
+
+  private String readLine() {
+    if (!buffer.hasRemaining()) return null;
+
+    StringBuilder sb = new StringBuilder();
+    while (buffer.hasRemaining()) {
+      byte b = buffer.get();
+      if (b == '\n') break;
+      sb.append((char) b);
+    }
+
+    return sb.length() == 0 && !buffer.hasRemaining() ? null : sb.toString();
   }
 
   @Override
   public void close() throws Exception {
-    if (reader != null) reader.close();
     if (channel != null) channel.close();
   }
+
 }

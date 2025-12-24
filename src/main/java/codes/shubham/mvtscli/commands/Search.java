@@ -3,23 +3,20 @@ package codes.shubham.mvtscli.commands;
 import codes.shubham.mvtscli.helpers.FileResolver;
 import codes.shubham.mvtscli.index.IndexHandler;
 import codes.shubham.mvtscli.index.Indexer;
-import codes.shubham.mvtscli.search.ILogHandler;
-import codes.shubham.mvtscli.search.LogRunner;
-import codes.shubham.mvtscli.search.RegexSearchHandler;
+import codes.shubham.mvtscli.search.*;
 import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.PlainFileSource;
 import codes.shubham.mvtscli.source.position.BytePosition;
-import codes.shubham.mvtscli.source.position.Position;
 import org.joda.time.DateTime;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @CommandLine.Command(
     name = "search",
@@ -46,6 +43,7 @@ public class Search implements Runnable {
   )
   List<String> dates;
 
+  static boolean s = false;
 
   @Override
   public void run() {
@@ -53,11 +51,23 @@ public class Search implements Runnable {
 
     Indexer indexer = new Indexer();
 
-    List<ILogHandler> handlers = List.of(new RegexSearchHandler(entity), new IndexHandler(indexer));
+    List<ILogSearchHandler> handlers =
+        new ArrayList<>(List.of(new MessageSearchHandler(entity)));
+
+    if (!s) {
+      handlers.add(new IndexHandler(indexer));
+      s = true;
+    }
+
+    AtomicBoolean terminateSearch = new AtomicBoolean(false);
 
     for (Path file : targets) {
       pool.submit(() -> {
         try {
+
+          if (terminateSearch.get()) {
+            return;
+          }
 
           int byteOffset = 0;
 
@@ -69,7 +79,7 @@ public class Search implements Runnable {
 
           ILogSource source = new PlainFileSource(file, byteOffset);
 
-          LogRunner runner = new LogRunner();
+          LogRunner runner = new LogRunner(terminateSearch);
           runner.run(source, handlers);
         } catch (Exception e) {
           System.err.println("Failed: " + file + " -> " + e.getMessage());
@@ -139,6 +149,7 @@ public class Search implements Runnable {
       long end = System.currentTimeMillis();
       System.out.println("Time taken: " + (end - start) + " ms");
     }
+
     {
       CommandLine commandLine = new CommandLine(new Search());
       long start = System.currentTimeMillis();

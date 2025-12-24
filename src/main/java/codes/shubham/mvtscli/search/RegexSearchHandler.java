@@ -2,22 +2,20 @@ package codes.shubham.mvtscli.search;
 
 import codes.shubham.mvtscli.source.LogLine;
 
-public class RegexSearchHandler implements  ILogHandler {
-
-  private final String searchTerm;
-
+public class RegexSearchHandler extends AbstractSearchHandler {
   public RegexSearchHandler(String searchTerm) {
-    this.searchTerm = searchTerm;
+    super(".*" + searchTerm + ".*");
   }
 
   @Override
-  public void handle(LogLine logLine) {
-    if (logLine.line() == null || logLine.line().isEmpty()) return;
+  public boolean isFound() {
+    return false;
+  }
 
-    if (logLine.line().matches(".*" + searchTerm + ".*")) {
-      synchronized (System.out) {
-        System.out.println(logLine.line());
-      }
+  @Override
+  protected void internalHandle(LogLine logLine) {
+    synchronized (System.out) {
+      System.out.println(logLine.line());
     }
   }
 }

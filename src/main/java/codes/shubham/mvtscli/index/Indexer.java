@@ -39,7 +39,7 @@ public class Indexer  {
   public void index(LogLine logline) {
     String requestID = getRequestID(logline.line());
 
-    if (requestID == null) return;
+    if (requestID == null || requestID.isBlank()) return;
 
     boolean isIndexPresent = index.containsKey(requestID)
         && index.get(requestID).containsKey(logline.filePath());
