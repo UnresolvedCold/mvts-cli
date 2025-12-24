@@ -6,15 +6,17 @@ import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.search.ILogHandler;
 import codes.shubham.mvtscli.search.LogRunner;
 import codes.shubham.mvtscli.search.RegexSearchHandler;
-import codes.shubham.mvtscli.source.GZipFileSource;
 import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.PlainFileSource;
+import codes.shubham.mvtscli.source.position.BytePosition;
+import codes.shubham.mvtscli.source.position.Position;
 import org.joda.time.DateTime;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -56,10 +58,16 @@ public class Search implements Runnable {
     for (Path file : targets) {
       pool.submit(() -> {
         try {
-          ILogSource source =
-              file.toString().endsWith(".gz")
-                  ? new GZipFileSource(file)
-                  : new PlainFileSource(file, 0);
+
+          int byteOffset = 0;
+
+          BytePosition position = (BytePosition) indexer.search(entity, file.getFileName().toString());
+
+          if (position != null) {
+            byteOffset = (int) position.byteOffset();
+          }
+
+          ILogSource source = new PlainFileSource(file, byteOffset);
 
           LogRunner runner = new LogRunner();
           runner.run(source, handlers);
@@ -128,6 +136,13 @@ public class Search implements Runnable {
       CommandLine commandLine = new CommandLine(new Search());
       long start = System.currentTimeMillis();
       commandLine.execute(new String[] {"r", "rXQOxO1uRLG9tG2VuJMhWw=="});
+      long end = System.currentTimeMillis();
+      System.out.println("Time taken: " + (end - start) + " ms");
+    }
+    {
+      CommandLine commandLine = new CommandLine(new Search());
+      long start = System.currentTimeMillis();
+      commandLine.execute(new String[] {"r", "dmz3lMSFSV2RTEH/pVAjfQ=="});
       long end = System.currentTimeMillis();
       System.out.println("Time taken: " + (end - start) + " ms");
     }

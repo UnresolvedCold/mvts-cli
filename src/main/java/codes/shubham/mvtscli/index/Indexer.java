@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Indexer  {
 
   // requestID -> FilePath -> Set<Position>
-  static Map<String, Map<String, Set<Position>>> index = new ConcurrentHashMap<>();
+  static Map<String, Map<String, Position>> index = new ConcurrentHashMap<>();
 
   // FilePath -> ChangeIdentifier
   static Map<String, String> logFileAndChangeIdentifierMap = new ConcurrentHashMap<>();
@@ -27,8 +27,13 @@ public class Indexer  {
     logFileAndChangeIdentifierMap.keySet().forEach(this::validate);
   }
 
-  public void search(String requestID) {
+  public Map<String, Position> search(String requestID) {
+    return index.getOrDefault(requestID, null);
+  }
 
+  public Position search(String requestID, String filePath) {
+    if (!index.containsKey(requestID)) return null;
+    return index.get(requestID).getOrDefault(filePath, null);
   }
 
   public void index(LogLine logline) {
@@ -37,14 +42,17 @@ public class Indexer  {
     if (requestID == null) return;
 
     boolean isIndexPresent = index.containsKey(requestID)
-        && index.get(requestID).containsKey(logline.filePath())
-        && index.get(requestID).get(logline.filePath()).contains(logline.position());
+        && index.get(requestID).containsKey(logline.filePath());
 
     if (!isIndexPresent) {
-      index
-          .computeIfAbsent(requestID, k -> new ConcurrentHashMap<>())
-          .computeIfAbsent(logline.filePath(), k -> ConcurrentHashMap.newKeySet())
-          .add(logline.position());
+      index.computeIfAbsent(requestID, k -> new ConcurrentHashMap<>());
+      index.get(requestID).putIfAbsent(logline.filePath(), logline.position());
+
+      Position old = index.get(requestID).get(logline.filePath());
+
+      if (old.compare(logline.position()) == 1) {
+        index.get(requestID).put(logline.filePath(), logline.position());
+      }
 
       logFileAndLastIndexedPositionMap.put(logline.filePath(), logline.position());
     }

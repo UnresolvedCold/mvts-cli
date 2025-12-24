@@ -1,3 +1,11 @@
 package codes.shubham.mvtscli.source.position;
 
-public record BytePosition(long byteOffset) implements Position {}
+public record BytePosition(long byteOffset) implements Position {
+  @Override
+  public int compare(Position other) {
+    if (other instanceof BytePosition(long offset)) {
+      return Long.compare(this.byteOffset, offset);
+    }
+    throw  new RuntimeException();
+  }
+}
