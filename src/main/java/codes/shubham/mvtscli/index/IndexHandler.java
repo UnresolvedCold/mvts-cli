@@ -14,7 +14,6 @@ public class IndexHandler implements ILogSearchHandler {
     this.indexer = indexer;
   }
 
-
   @Override
   public void handle(LogLine logline) {
     indexer.index(logline);

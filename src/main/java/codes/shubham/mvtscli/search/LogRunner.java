@@ -15,23 +15,26 @@ public final class LogRunner {
   public LogRunner() {
   }
 
-  public void run(ILogSource source, List<ILogSearchHandler> handlerList) {
+  public void run(ILogSource source, List<ILogHandler> handlerList) {
     try (source) {
       Stream<LogLine> lines = source.logLines();
+      Iterable<LogLine> iter = (Iterable<LogLine>) lines::iterator;
 
-      for (LogLine logLine : (Iterable<LogLine>) lines::iterator) {
-
+      for (LogLine logLine : iter) {
         if (logLine.line() == null || logLine.line().isBlank()) continue;
 
-        if (handlerList != null && !handlerList.isEmpty()) {
-          for (ILogSearchHandler handler : handlerList) {
-            handler.handle(logLine);
-          }
-        }
+        handle(handlerList, logLine);
       }
-
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private static void handle(List<ILogHandler> handlerList, LogLine logLine) {
+    if (handlerList != null && !handlerList.isEmpty()) {
+      for (ILogHandler handler : handlerList) {
+        handler.handle(logLine);
+      }
     }
   }
 }

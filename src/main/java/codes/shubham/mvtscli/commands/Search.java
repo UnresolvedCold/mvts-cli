@@ -3,6 +3,7 @@ package codes.shubham.mvtscli.commands;
 import codes.shubham.mvtscli.helpers.FileResolver;
 import codes.shubham.mvtscli.index.IndexHandler;
 import codes.shubham.mvtscli.index.IndexPosition;
+import codes.shubham.mvtscli.index.IndexValidateHandler;
 import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.search.*;
 import codes.shubham.mvtscli.source.GZipFileSource;
@@ -86,9 +87,11 @@ public class Search implements Runnable {
           ILogSource source = getSource(file, offset1, offset2);
 
           LogRunner runner = new LogRunner();
-          List<ILogSearchHandler> handlers = new ArrayList<>();
+          List<ILogHandler> handlers = new ArrayList<>();
 
           IOSearchMode mode = IOSearchMode.getMode(type);
+
+          handlers.add(new IndexValidateHandler(indexer, requestID));
 
           if (mode == IOSearchMode.MESSAGE || mode == IOSearchMode.OUTPUT) {
             logger.trace("Searching for input/output, requestID: {}", requestID);
@@ -118,6 +121,8 @@ public class Search implements Runnable {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+
+    indexer.commit();
   }
 
   private static ILogSource getSource(Path file, long offset1, long offset2) throws IOException {
@@ -170,7 +175,7 @@ public class Search implements Runnable {
     {
       CommandLine commandLine = new CommandLine(new Search());
       long start = System.currentTimeMillis();
-      commandLine.execute(new String[] {"r", "rXQOxO1uRLG9tG2VuJMhWw=="});
+      commandLine.execute(new String[] {"r", "a_cold"});
       long end = System.currentTimeMillis();
       System.out.println("Time taken: " + (end - start) + " ms");
     }
@@ -178,7 +183,7 @@ public class Search implements Runnable {
     {
       CommandLine commandLine = new CommandLine(new Search());
       long start = System.currentTimeMillis();
-      commandLine.execute(new String[] {"r", "rXQOxO1uRLG9tG2VuJMhWw=="});
+      commandLine.execute(new String[] {"o", "b_cold"});
       long end = System.currentTimeMillis();
       System.out.println("Time taken: " + (end - start) + " ms");
     }
@@ -186,7 +191,7 @@ public class Search implements Runnable {
     {
       CommandLine commandLine = new CommandLine(new Search());
       long start = System.currentTimeMillis();
-      commandLine.execute(new String[] {"r", "dmz3lMSFSV2RTEH/pVAjfQ=="});
+      commandLine.execute(new String[] {"o", "c_cold"});
       long end = System.currentTimeMillis();
       System.out.println("Time taken: " + (end - start) + " ms");
     }
@@ -194,7 +199,7 @@ public class Search implements Runnable {
     {
       CommandLine commandLine = new CommandLine(new Search());
       long start = System.currentTimeMillis();
-      commandLine.execute(new String[] {"m", "somethingNotIndexed"});
+      commandLine.execute(new String[] {"m", "d_cold"});
       long end = System.currentTimeMillis();
       System.out.println("Time taken: " + (end - start) + " ms");
     }
