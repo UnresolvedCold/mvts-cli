@@ -14,6 +14,8 @@ public final class LogRunner {
           .logLines()
           .forEach(
               logline -> {
+                if (logline.line() == null || logline.line().isBlank()) return;
+
                 if (handlerList != null && !handlerList.isEmpty()) {
                   handlerList.forEach(h->
                     h.handle(logline));
