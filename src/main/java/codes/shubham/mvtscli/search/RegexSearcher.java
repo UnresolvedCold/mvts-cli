@@ -2,24 +2,27 @@ package codes.shubham.mvtscli.search;
 
 import codes.shubham.mvtscli.source.ILogSource;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class RegexSearcher implements  ILogSearcher {
+
   @Override
-  public List<String> search(ILogSource source, IOSearchMode mode, String searchTerm) {
+  public void search(ILogSource source, IOSearchMode mode,
+                     String searchTerm, ILogHandler matchHandler, ILogHandler lineHandler) {
     String finalSearchTerm = ".*" + searchTerm + ".*";
-    List<String> results = new ArrayList<>();
+
     try (source) {
+      long[] lineNo = {0};
+
       source.lines().forEach(line -> {
+        lineNo[0]++;
         if (line == null || line.isEmpty()) return;
+        lineHandler.handle(line, lineNo[0]);
+
         if (line.matches(finalSearchTerm)) {
-          results.add(line);
+          matchHandler.handle(line, lineNo[0]);
         }
       });
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return results;
   }
 }

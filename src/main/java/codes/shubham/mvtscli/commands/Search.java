@@ -1,6 +1,9 @@
 package codes.shubham.mvtscli.commands;
 
 import codes.shubham.mvtscli.helpers.FileResolver;
+import codes.shubham.mvtscli.index.CursorStore;
+import codes.shubham.mvtscli.index.IndexWriter;
+import codes.shubham.mvtscli.index.ReadThroughIndexer;
 import codes.shubham.mvtscli.search.ILogSearcher;
 import codes.shubham.mvtscli.search.JsonSearcher;
 import codes.shubham.mvtscli.search.RegexSearcher;
@@ -49,6 +52,13 @@ public class Search implements Runnable {
   public void run() {
     IOSearchMode mode = IOSearchMode.getMode(type);
     final ILogSearcher searcher = getSearcher(mode);
+    Path base = Path.of(System.getProperty("user.home"), ".mvts");
+    CursorStore cursors =
+        new CursorStore(base.resolve("file-cursors.json"));
+    IndexWriter writer =
+        new IndexWriter(base.resolve("request-index.jsonl"));
+    ReadThroughIndexer indexer =
+        new ReadThroughIndexer(writer);
 
     final List<Path> targets = getPaths();
 
@@ -58,13 +68,18 @@ public class Search implements Runnable {
           ILogSource source =
               file.toString().endsWith(".gz")
                   ? new GZipFileSource(file)
-                  : new PlainFileSource(file);
+                  : new PlainFileSource(file, cursors);
 
-          List<String> res = searcher.search(source, mode, entity);
-
-          synchronized (System.out) {
-            res.forEach(System.out::println);
-          }
+          searcher.search(source, mode, entity,
+              (line, lineNo) -> {
+//                synchronized (System.out) {
+//                  System.out.println(line);
+//                }
+              },
+              (line, lineNo) -> {
+                indexer.onLine(file, line, lineNo);
+              }
+          );
 
         } catch (Exception e) {
           System.err.println("Failed: " + file + " -> " + e.getMessage());
