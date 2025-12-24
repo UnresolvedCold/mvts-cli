@@ -14,8 +14,10 @@ import picocli.CommandLine;
 
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -83,6 +85,14 @@ public class Index implements Runnable {
         System.err.println("Indexer already running");
         System.exit(1);
       }
+
+      Files.writeString(
+          lockFile,
+          "pid=" + ProcessHandle.current().pid() +
+              "\nstarted=" + Instant.now(),
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING
+      );
 
       Runtime.getRuntime()
           .addShutdownHook(
