@@ -7,14 +7,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class IndexData {
   // requestID -> FilePath -> Set<Position>
-  private Map<String, Map<String, IndexPosition>> index = new ConcurrentHashMap<>();
+  private final Map<String, Map<String, IndexPosition>> index = new ConcurrentHashMap<>();
+  private final Map<String, Position> fileStatus = new ConcurrentHashMap<>();
 
-  public Map<String, Map<String, IndexPosition>> getIndex() {
-    return index;
+  public IndexPosition getIndexPositon(String requestId, String filePath) {
+    if (!index.containsKey(requestId)) return null;
+    return index.get(requestId).getOrDefault(filePath, null);
   }
 
-  public void setIndex(Map<String, Map<String, IndexPosition>> index) {
-    this.index = index;
+  public void setIndexPosition(String requestId, String filePath, IndexPosition indexPosition) {
+    index.computeIfAbsent(requestId, k -> new ConcurrentHashMap<>());
+    index.get(requestId).put(filePath, indexPosition);
+
+    fileStatus.putIfAbsent(filePath, indexPosition.end());
+    if (fileStatus.get(filePath).compare(indexPosition.end()) == 1) {
+      fileStatus.put(filePath, indexPosition.end());
+    }
   }
 
   @Override
@@ -37,6 +45,13 @@ public class IndexData {
             .append(indexPosition.end())
             .append('\n');
       });
+    });
+
+    fileStatus.forEach((filePath, position) -> {
+      sb.append("FST|")
+          .append(filePath).append('|')
+          .append(position)
+          .append('\n');
     });
 
     return sb.toString();
@@ -68,6 +83,15 @@ public class IndexData {
             data.index
                 .computeIfAbsent(requestId, k -> new ConcurrentHashMap<>())
                 .put(filePath, new IndexPosition(start, end));
+          }
+
+          case "FST" -> {
+            if (parts.length != 3) continue;
+
+            String filePath = parts[1];
+            Position position = Position.fromString(parts[2]);
+
+            data.fileStatus.put(filePath, position);
           }
         }
       } catch (Exception ignore) {

@@ -28,8 +28,7 @@ public class Indexer  {
   }
 
   public IndexPosition search(String requestID, String filePath) {
-    if (!indexData.getIndex().containsKey(requestID)) return null;
-    return indexData.getIndex().get(requestID).getOrDefault(filePath, null);
+    return indexData.getIndexPositon(requestID, filePath);
   }
 
   public void index(LogLine logline) {
@@ -42,19 +41,22 @@ public class Indexer  {
     boolean isIndexPresent = isIndexPresent(logline, requestID);
 
     if (!isIndexPresent) {
-      indexData.getIndex().computeIfAbsent(requestID, k -> new ConcurrentHashMap<>());
-      indexData.getIndex().get(requestID).putIfAbsent(logline.filePath(),
-          new IndexPosition(logline.position(), logline.position()));
+      if (indexData.getIndexPositon(requestID, logline.filePath()) == null) {
+        indexData.setIndexPosition(
+            requestID,
+            logline.filePath(),
+            new IndexPosition(logline.position(), logline.position()));
+      }
 
-      IndexPosition old = indexData.getIndex().get(requestID).get(logline.filePath());
+      IndexPosition old = indexData.getIndexPositon(requestID, logline.filePath());
 
       if (old.start().compare(logline.position()) == 1) {
-        indexData.getIndex().get(requestID).put(logline.filePath(),
+        indexData.setIndexPosition(requestID, logline.filePath(),
             new IndexPosition(logline.position(), old.end()));
       }
 
       if (old.end().compare(logline.position()) == -1) {
-        indexData.getIndex().get(requestID).put(logline.filePath(),
+        indexData.setIndexPosition(requestID, logline.filePath(),
             new IndexPosition(old.start(), logline.position()));
       }
 
@@ -63,12 +65,10 @@ public class Indexer  {
   }
 
   private boolean isIndexPresent(LogLine logline, String requestID) {
-    return indexData.getIndex().containsKey(requestID)
-        && indexData.getIndex().get(requestID).containsKey(logline.filePath())
-        // Assuming atleast there are 2 log lines for a requestID in a file
-        && indexData.getIndex().get(requestID).get(logline.filePath()).start() != null
-        && indexData.getIndex().get(requestID).get(logline.filePath()).end() != null
-        && logline.position().compare(indexData.getIndex().get(requestID).get(logline.filePath()).end()) <= 0;
+    return indexData.getIndexPositon(requestID, logline.filePath()) != null
+        && indexData.getIndexPositon(requestID, logline.filePath()).start() != null
+        && indexData.getIndexPositon(requestID, logline.filePath()).end() != null
+        && logline.position().compare(indexData.getIndexPositon(requestID, logline.filePath()).end()) <= 0;
 
   }
 
@@ -79,29 +79,7 @@ public class Indexer  {
   }
 
   public void validate(LogLine logline) {
-    String requestID = getRequestID(logline.line());
-    if (requestID == null || requestID.isBlank()) return;
-
-    Map<String, IndexPosition> p1 = indexData.getIndex().get(requestID);
-
-    if (p1 == null) {
-      return;
-    }
-
-    IndexPosition pos = p1.get(logline.filePath());
-
-    if (pos == null) {
-      logger.trace("Invalidating index for requestID {}", requestID);
-      indexData.getIndex().remove(requestID);
-      return;
-    }
-
-    if (logline.position().offset() < pos.start().offset()
-        || logline.position().offset() > pos.end().offset()) {
-      logger.trace("Invalidating index for requestID {}", requestID);
-      indexData.getIndex().remove(requestID);
-      return;
-    }
+    throw new RuntimeException("not implemented yet");
   }
 
   private void commitToFile() {

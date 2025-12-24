@@ -120,7 +120,7 @@ public class Index implements Runnable {
 
 
   private List<Path> getPaths() {
-    return FileResolver.resolve("scheduler.log");
+    return FileResolver.resolve("*");
   }
 
   public static void main(String[] args) throws Exception {

@@ -1,6 +1,6 @@
 package codes.shubham.mvtscli.source;
 
-import codes.shubham.mvtscli.source.position.LinePositon;
+import codes.shubham.mvtscli.source.position.LinePosition;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -17,8 +17,15 @@ public class GZipFileSource implements ILogSource {
   private final String filePath;
   private long lineNumber = 0;
 
-  public GZipFileSource(Path path) throws IOException {
+  private long startLine = 0;
+  private long endLine = -1;
+
+  private boolean finished = false;
+
+  public GZipFileSource(Path path, long startLine, long endLine) throws IOException {
     filePath = path.getFileName().toString();
+    this.startLine = Math.max(1, startLine);
+    this.endLine = endLine;
     InputStream in = new FileInputStream(path.toFile());
     this.reader = new BufferedReader(
         new InputStreamReader(
@@ -28,29 +35,56 @@ public class GZipFileSource implements ILogSource {
   }
 
   @Override
-  public Stream<LogLine> logLines() throws IOException {
-    Iterator<LogLine> it =
-        new Iterator<>() {
-          String next;
+  public Stream<LogLine> logLines() {
 
-          @Override
-          public boolean hasNext() {
-            try {
-              next = reader.readLine();
-              return next != null;
-            } catch (IOException e) {
-              throw new UncheckedIOException(e);
+    Iterator<LogLine> it = new Iterator<>() {
+      String next;
+
+      @Override
+      public boolean hasNext() {
+        if (finished) return false;
+
+        try {
+          while (true) {
+            next = reader.readLine();
+            if (next == null) {
+              finished = true;
+              return false;
             }
-          }
 
-          @Override
-          public LogLine next() {
-            return new LogLine(filePath, next, new LinePositon(++lineNumber));
-          }
-        };
+            lineNumber++;
 
-        return StreamSupport.stream(
-            Spliterators.spliteratorUnknownSize(it, Spliterator.ORDERED | Spliterator.NONNULL),
+            if (lineNumber < startLine) {
+              continue;
+            }
+
+            if (endLine > 0 && lineNumber > endLine) {
+              finished = true;
+              return false;
+            }
+
+            return true;
+          }
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+      }
+
+      @Override
+      public LogLine next() {
+        return new LogLine(
+            filePath,
+            next,
+            new LinePosition(lineNumber)
+        );
+      }
+    };
+
+    return StreamSupport.stream(
+        Spliterators.spliteratorUnknownSize(
+            it,
+            Spliterator.ORDERED | Spliterator.NONNULL
+        ),
         false
     );
   }
@@ -59,5 +93,4 @@ public class GZipFileSource implements ILogSource {
   public void close() throws Exception {
     reader.close();
   }
-
 }
