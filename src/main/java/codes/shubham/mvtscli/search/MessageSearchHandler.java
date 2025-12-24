@@ -4,9 +4,11 @@ import codes.shubham.mvtscli.source.LogLine;
 
 public class MessageSearchHandler extends AbstractSearchHandler {
   boolean found = false;
+  String marker;
 
-  public MessageSearchHandler(String requestID) {
-    super(".*Message:.*"+requestID+".*");
+  public MessageSearchHandler(String requestID, String marker) {
+    super(".*"+ marker +".*"+requestID+".*");
+    this.marker = marker;
   }
 
   @Override
@@ -16,9 +18,10 @@ public class MessageSearchHandler extends AbstractSearchHandler {
 
   @Override
   protected void internalHandle(LogLine logLine) {
+
     synchronized (System.out) {
       found = true;
-      System.out.println(found);
+      System.out.println(logLine.line().split(marker)[1].trim());
     }
   }
 }

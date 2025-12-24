@@ -5,6 +5,7 @@ import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.LogLine;
 import codes.shubham.mvtscli.source.PlainFileSource;
 import codes.shubham.mvtscli.source.position.Position;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -14,8 +15,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Indexer  {
 
+  private final static Logger logger = org.slf4j.LoggerFactory.getLogger(Indexer.class);
+
   // requestID -> FilePath -> Set<Position>
-  static Map<String, Map<String, Position>> index = new ConcurrentHashMap<>();
+  static Map<String, Map<String, IndexPosition>> index = new ConcurrentHashMap<>();
 
   // FilePath -> ChangeIdentifier
   static Map<String, String> logFileAndChangeIdentifierMap = new ConcurrentHashMap<>();
@@ -27,11 +30,11 @@ public class Indexer  {
     logFileAndChangeIdentifierMap.keySet().forEach(this::validate);
   }
 
-  public Map<String, Position> search(String requestID) {
+  public Map<String, IndexPosition> search(String requestID) {
     return index.getOrDefault(requestID, null);
   }
 
-  public Position search(String requestID, String filePath) {
+  public IndexPosition search(String requestID, String filePath) {
     if (!index.containsKey(requestID)) return null;
     return index.get(requestID).getOrDefault(filePath, null);
   }
@@ -41,21 +44,44 @@ public class Indexer  {
 
     if (requestID == null || requestID.isBlank()) return;
 
-    boolean isIndexPresent = index.containsKey(requestID)
-        && index.get(requestID).containsKey(logline.filePath());
+    boolean isIndexPresent = isIsIndexPresent(logline, requestID);
 
     if (!isIndexPresent) {
       index.computeIfAbsent(requestID, k -> new ConcurrentHashMap<>());
-      index.get(requestID).putIfAbsent(logline.filePath(), logline.position());
+      index.get(requestID).putIfAbsent(logline.filePath(),
+          new IndexPosition(logline.position(), logline.position()));
 
-      Position old = index.get(requestID).get(logline.filePath());
+      IndexPosition old = index.get(requestID).get(logline.filePath());
 
-      if (old.compare(logline.position()) == 1) {
-        index.get(requestID).put(logline.filePath(), logline.position());
+      logger.trace("indexing requestID: {} in file: {} at position: {}",
+          requestID, logline.filePath(), logline.position());
+
+      if (old.start().compare(logline.position()) == 1) {
+        logger.trace("Updating start position for requestID: {} in file: {} from {} to {}",
+            requestID, logline.filePath(), old.start(), logline.position());
+        index.get(requestID).put(logline.filePath(),
+            new IndexPosition(logline.position(), old.end()));
+      }
+
+      if (old.end().compare(logline.position()) == -1) {
+        logger.trace("Updating end position for requestID: {} in file: {} from {} to {}",
+            requestID, logline.filePath(), old.end(), logline.position());
+        index.get(requestID).put(logline.filePath(),
+            new IndexPosition(old.start(), logline.position()));
       }
 
       logFileAndLastIndexedPositionMap.put(logline.filePath(), logline.position());
     }
+  }
+
+  private static boolean isIsIndexPresent(LogLine logline, String requestID) {
+    return index.containsKey(requestID)
+        && index.get(requestID).containsKey(logline.filePath())
+        // Assuming atleast there are 2 log lines for a requestID in a file
+        && index.get(requestID).get(logline.filePath()).start() != null
+        && index.get(requestID).get(logline.filePath()).end() != null
+        && logline.position().compare(index.get(requestID).get(logline.filePath()).end()) <= 0;
+
   }
 
   private String getRequestID(String l) {
@@ -88,7 +114,7 @@ public class Indexer  {
     if (filePath.endsWith(".gz")) return "";
 
     try {
-      ILogSource src = new PlainFileSource(Path.of(filePath), 0);
+      ILogSource src = new PlainFileSource(Path.of(filePath), 0, 0);
       return src.logLines().findFirst().map(LogLine::line).orElse(null);
     } catch (Exception e) {
       throw new RuntimeException(e);

@@ -3,8 +3,11 @@ package codes.shubham.mvtscli.index;
 import codes.shubham.mvtscli.search.ILogHandler;
 import codes.shubham.mvtscli.search.ILogSearchHandler;
 import codes.shubham.mvtscli.source.LogLine;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IndexHandler implements ILogSearchHandler {
+  private static final Logger logger = LoggerFactory.getLogger(IndexHandler.class.getName());
   private final Indexer indexer;
 
   public IndexHandler(Indexer indexer) {

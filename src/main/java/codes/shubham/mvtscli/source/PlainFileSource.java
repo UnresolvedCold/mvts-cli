@@ -13,47 +13,71 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 public class PlainFileSource implements ILogSource, AutoCloseable {
 
   private final Path path;
   private final String filePath;
+  private final long endOffset;
+
   private FileChannel channel;
   private MappedByteBuffer buffer;
+  private long absoluteStart;
+  private long absoluteEnd;
 
-  public PlainFileSource(Path path) throws IOException {
-    this(path, 0L);
-  }
-
-  public PlainFileSource(Path path, long startOffset) throws IOException {
+  public PlainFileSource(Path path, long startOffset, long endOffset) throws IOException {
     this.path = path;
     this.filePath = path.getFileName().toString();
+    this.endOffset = endOffset;
     openAt(startOffset);
   }
 
-  private void openAt(long offset) throws IOException {
+  private void openAt(long startOffset) throws IOException {
     this.channel = FileChannel.open(path, StandardOpenOption.READ);
     long size = channel.size();
-    this.buffer = channel.map(FileChannel.MapMode.READ_ONLY, offset, size - offset);
+
+    this.absoluteStart = startOffset;
+    this.buffer = channel.map(
+        FileChannel.MapMode.READ_ONLY,
+        startOffset,
+        size - startOffset
+    );
+
+    this.absoluteEnd = findEndOfLine(endOffset, size);
+  }
+
+  private long findEndOfLine(long lineStart, long fileSize) {
+    if (lineStart >= fileSize || lineStart < 0) {
+      return fileSize;
+    }
+
+    int relativePos = (int) (lineStart - absoluteStart);
+    int limit = buffer.limit();
+
+    for (int i = relativePos; i < limit; i++) {
+      if (buffer.get(i) == '\n') {
+        return absoluteStart + i + 1;
+      }
+    }
+
+    return fileSize;
   }
 
   @Override
-  public Stream<LogLine> logLines() throws IOException {
+  public Stream<LogLine> logLines() {
     Iterator<LogLine> it = new Iterator<>() {
-      private long currentOffset = channel.position();
-      private String nextLine;
+      long currentOffset = absoluteStart;
 
       @Override
       public boolean hasNext() {
-        nextLine = readLine();
-        return nextLine != null;
+        return buffer.hasRemaining() && currentOffset < absoluteEnd;
       }
 
       @Override
       public LogLine next() {
-        LogLine line = new LogLine(filePath, nextLine, new BytePosition(currentOffset));
-        currentOffset += nextLine.getBytes(StandardCharsets.UTF_8).length + 1; // +1 for '\n'
-        return line;
+        long lineStart = currentOffset;
+        String line = readLine();
+        currentOffset = absoluteStart + buffer.position();
+        return new LogLine(filePath, line, new BytePosition(lineStart));
       }
     };
 
@@ -68,21 +92,20 @@ public class PlainFileSource implements ILogSource, AutoCloseable {
   }
 
   private String readLine() {
-    if (!buffer.hasRemaining()) return null;
-
     StringBuilder sb = new StringBuilder();
-    while (buffer.hasRemaining()) {
+
+    while (buffer.hasRemaining() && (absoluteStart + buffer.position()) < absoluteEnd) {
       byte b = buffer.get();
       if (b == '\n') break;
       sb.append((char) b);
     }
 
-    return sb.length() == 0 && !buffer.hasRemaining() ? null : sb.toString();
+    return sb.toString();
   }
 
   @Override
   public void close() throws Exception {
     if (channel != null) channel.close();
   }
-
 }
+

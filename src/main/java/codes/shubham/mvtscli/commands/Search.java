@@ -2,12 +2,15 @@ package codes.shubham.mvtscli.commands;
 
 import codes.shubham.mvtscli.helpers.FileResolver;
 import codes.shubham.mvtscli.index.IndexHandler;
+import codes.shubham.mvtscli.index.IndexPosition;
 import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.search.*;
 import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.PlainFileSource;
 import codes.shubham.mvtscli.source.position.BytePosition;
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
@@ -16,7 +19,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @CommandLine.Command(
     name = "search",
@@ -24,21 +26,30 @@ import java.util.concurrent.atomic.AtomicBoolean;
 )
 public class Search implements Runnable {
 
+  private static Logger logger = LoggerFactory.getLogger(Search.class);
+
   ExecutorService pool = Executors.newFixedThreadPool(
       Math.min(1, Runtime.getRuntime().availableProcessors())
   );
 
   @CommandLine.Parameters(index = "0",
       description = "message|m|output|o|regex|r")
-  String type;
+  String type = "r";
 
   @CommandLine.Parameters(index = "1",
-      description = "entity, e.g., request ID or regex")
-  String entity;
+      description = "request ID")
+  String requestID = "";
+
+  @CommandLine.Option(
+      names = {"--regex", "-r"},
+      description = "regex pattern you want to search",
+      arity = "1"
+  )
+  String regexPattern = "";
 
   @CommandLine.Option(
       names = {"--dates", "-d"},
-      description = "Dates to search",
+      description = "dates to search",
       arity = "0..*"
   )
   List<String> dates;
@@ -51,38 +62,50 @@ public class Search implements Runnable {
 
     Indexer indexer = new Indexer();
 
-    List<ILogSearchHandler> handlers =
-        new ArrayList<>(List.of(new MessageSearchHandler(entity)));
-
-    if (!s) {
-      handlers.add(new IndexHandler(indexer));
-      s = true;
-    }
-
-    AtomicBoolean terminateSearch = new AtomicBoolean(false);
+    logger.debug("Searching files: {}", targets);
 
     for (Path file : targets) {
       pool.submit(() -> {
+        int byteOffset1 = 0;
+        int byteOffset2 = -1;
+        boolean searchingIndexed = false;
+
+        IndexPosition position = indexer.search(requestID, file.getFileName().toString());
+
+        if (position != null) {
+          logger.debug("Found index position for {} in file {}: {} - {}",
+              requestID, file, position.start(), position.end());
+          byteOffset1 = (int) ((BytePosition)position.start()).byteOffset();
+          byteOffset2 = (int) ((BytePosition)position.end()).byteOffset();
+          searchingIndexed = true;
+        }
+
         try {
+          ILogSource source = new PlainFileSource(file, byteOffset1, byteOffset2);
 
-          if (terminateSearch.get()) {
-            return;
+          LogRunner runner = new LogRunner();
+          List<ILogSearchHandler> handlers = new ArrayList<>();
+
+          IOSearchMode mode = IOSearchMode.getMode(type);
+
+          if (mode == IOSearchMode.MESSAGE || mode == IOSearchMode.OUTPUT) {
+            logger.trace("Searching for input/output, requestID: {}", requestID);
+            handlers.add(new MessageSearchHandler(requestID, mode.marker()));
+          } else if (mode == IOSearchMode.REGEX) {
+            logger.trace("Searching for regex pattern, requestID: {}, regex: {}", requestID, regexPattern);
+            handlers.add(new RegexSearchHandler(requestID, regexPattern));
+          } else {
+            throw new IllegalArgumentException("Unsupported search type: " + type);
           }
 
-          int byteOffset = 0;
-
-          BytePosition position = (BytePosition) indexer.search(entity, file.getFileName().toString());
-
-          if (position != null) {
-            byteOffset = (int) position.byteOffset();
+          if (!searchingIndexed) {
+            logger.debug("Indexing file {} ...", file);
+            handlers.add(new IndexHandler(indexer));
           }
 
-          ILogSource source = new PlainFileSource(file, byteOffset);
-
-          LogRunner runner = new LogRunner(terminateSearch);
           runner.run(source, handlers);
         } catch (Exception e) {
-          System.err.println("Failed: " + file + " -> " + e.getMessage());
+          logger.error("Failed: " + file + " -> " + e.getMessage());
         }
       });
     }
@@ -134,6 +157,7 @@ public class Search implements Runnable {
   }
 
   public static void main(String[] args){
+
     {
       CommandLine commandLine = new CommandLine(new Search());
       long start = System.currentTimeMillis();
@@ -154,6 +178,14 @@ public class Search implements Runnable {
       CommandLine commandLine = new CommandLine(new Search());
       long start = System.currentTimeMillis();
       commandLine.execute(new String[] {"r", "dmz3lMSFSV2RTEH/pVAjfQ=="});
+      long end = System.currentTimeMillis();
+      System.out.println("Time taken: " + (end - start) + " ms");
+    }
+
+    {
+      CommandLine commandLine = new CommandLine(new Search());
+      long start = System.currentTimeMillis();
+      commandLine.execute(new String[] {"m", "somethingNotIndexed"});
       long end = System.currentTimeMillis();
       System.out.println("Time taken: " + (end - start) + " ms");
     }
