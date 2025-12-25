@@ -1,6 +1,7 @@
 package codes.shubham.mvtscli.index;
 
 import codes.shubham.mvtscli.ApplicationProperties;
+import codes.shubham.mvtscli.helpers.FileResolver;
 import codes.shubham.mvtscli.source.LogLine;
 import org.slf4j.Logger;
 
@@ -41,7 +42,7 @@ public class Indexer  {
   public void index(LogLine logline) {
     IndexData indexData = tempIndexData;
 
-    String requestID = getRequestID(logline.line());
+    String requestID = FileResolver.getRequestIDFromLogLine(logline.line());
 
     if (requestID == null || requestID.isBlank()) return;
 
@@ -79,11 +80,6 @@ public class Indexer  {
 
   }
 
-  private String getRequestID(String l) {
-    final String line = l.substring(0,Math.min(l.length() - 1, 300));
-    if (!line.contains("multifleet_planner")) return null;
-    return line.split("multifleet_planner")[1].split(",")[3].trim();
-  }
 
   public void validate(LogLine logline) {
     throw new RuntimeException("not implemented yet");

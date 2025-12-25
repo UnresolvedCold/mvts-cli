@@ -46,7 +46,10 @@ public class FileResolver {
     return new PlainFileSource(file, offset1, offset2);
   }
 
-  public static void saveToFile(Path file, String content) throws IOException {
-    Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+  public static String getRequestIDFromLogLine(String l) {
+    final String line = l.substring(0,Math.min(l.length() - 1, 300));
+    if (!line.contains("multifleet_planner")) return null;
+    return line.split("multifleet_planner")[1].split(",")[3].trim();
   }
+
 }
