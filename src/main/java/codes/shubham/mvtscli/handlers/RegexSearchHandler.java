@@ -1,10 +1,15 @@
 package codes.shubham.mvtscli.handlers;
 
+import codes.shubham.mvtscli.handlers.searchresult.ISearchedResultHandler;
 import codes.shubham.mvtscli.source.LogLine;
 
 public class RegexSearchHandler extends AbstractSearchHandler {
-  public RegexSearchHandler(String requestID, String searchTerm) {
+  private final ISearchedResultHandler handler;
+
+
+  public RegexSearchHandler(String requestID, String searchTerm, ISearchedResultHandler handler) {
     super(requestID,".*" + requestID + ".*" + searchTerm + ".*");
+    this.handler = handler;
   }
 
   @Override
@@ -14,8 +19,8 @@ public class RegexSearchHandler extends AbstractSearchHandler {
 
   @Override
   protected void internalHandle(LogLine logLine) {
-    synchronized (System.out) {
-      System.out.println(logLine.line());
-    }
+    if (handler == null) return;
+
+    handler.handle(logLine.line());
   }
 }

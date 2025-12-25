@@ -4,6 +4,9 @@ import codes.shubham.mvtscli.ApplicationProperties;
 import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.source.LogLine;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class AbstractSearchHandler implements ILogSearchHandler {
 
   private final String requestID;

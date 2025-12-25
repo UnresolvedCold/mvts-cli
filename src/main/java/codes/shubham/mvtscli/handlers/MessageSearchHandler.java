@@ -1,14 +1,17 @@
 package codes.shubham.mvtscli.handlers;
 
+import codes.shubham.mvtscli.handlers.searchresult.ISearchedResultHandler;
 import codes.shubham.mvtscli.source.LogLine;
 
 public class MessageSearchHandler extends AbstractSearchHandler {
-  boolean found = false;
-  String marker;
+  private final boolean found = false;
+  private final String marker;
+  private final ISearchedResultHandler handler;
 
-  public MessageSearchHandler(String requestID, String marker) {
+  public MessageSearchHandler(String requestID, String marker, ISearchedResultHandler handler) {
     super(requestID,".*"+ marker +".*"+requestID+".*");
     this.marker = marker;
+    this.handler = handler;
   }
 
   @Override
@@ -18,10 +21,8 @@ public class MessageSearchHandler extends AbstractSearchHandler {
 
   @Override
   protected void internalHandle(LogLine logLine) {
+    if (handler == null) return;
 
-    synchronized (System.out) {
-      found = true;
-      System.out.println(logLine.line().split(marker)[1].trim());
-    }
+    handler.handle(logLine.line());
   }
 }

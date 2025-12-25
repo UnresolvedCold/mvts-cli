@@ -25,13 +25,9 @@ import java.util.concurrent.TimeUnit;
     name = "search",
     description = "Search an entity"
 )
-public class Search implements Runnable {
+public class Search extends AbstractLogRunnerCommand implements Runnable {
 
   private static Logger logger = LoggerFactory.getLogger(Search.class);
-
-  ExecutorService pool = Executors.newFixedThreadPool(
-      Math.max(1, Runtime.getRuntime().availableProcessors())
-  );
 
   @CommandLine.Parameters(index = "0",
       description = "message|m|output|o|regex|r")
@@ -67,52 +63,13 @@ public class Search implements Runnable {
         new Indexer(ApplicationProperties.MAIN_INDEX_FILE.getValue())
     ));
 
+    final List<ILogHandler> handlers = getLogHandlers();
+
     logger.debug("Searching files: {}", targets);
 
-    for (Path file : targets) {
-
-      final List<ILogHandler> handlers = getLogHandlers();
-
-      pool.submit(
-          () -> {
-            long offset1 = 0;
-            long offset2 = -1;
-
-            for (Indexer indexer : indexers) {
-              IndexPosition position = indexer.search(requestID, file.getFileName().toString());
-
-              if (position != null) {
-                logger.debug(
-                    "Found index position for {} in file {}: {} - {}",
-                    requestID,
-                    file,
-                    position.start(),
-                    position.end());
-
-                offset1 = position.start().offset();
-                offset2 = position.end().offset();
-              }
-            }
-
-            try {
-              ILogSource source = FileResolver.getSource(file, offset1, offset2);
-
-              LogRunner runner = new LogRunner();
-
-              runner.run(source, handlers);
-            } catch (Exception e) {
-              logger.error("Failed: " + file + " -> " + e.getMessage());
-            }
-          });
-    }
-
-    pool.shutdown();
-    try {
-      pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+    handle(requestID, targets, indexers, handlers);
   }
+
 
   private List<ILogHandler> getLogHandlers() {
     List<ILogHandler> handlers = new ArrayList<>();
@@ -121,10 +78,18 @@ public class Search implements Runnable {
 
     if (mode == IOSearchMode.MESSAGE || mode == IOSearchMode.OUTPUT) {
       logger.trace("Searching for input/output, requestID: {}", requestID);
-      handlers.add(new MessageSearchHandler(requestID, mode.marker()));
+      handlers.add(new MessageSearchHandler(requestID, mode.marker(), l ->{
+        synchronized (System.out) {
+          System.out.println(l.split(mode.marker())[1].trim());
+        }
+      }));
     } else if (mode == IOSearchMode.REGEX) {
       logger.trace("Searching for regex pattern, requestID: {}, regex: {}", requestID, regexPattern);
-      handlers.add(new RegexSearchHandler(requestID, regexPattern));
+      handlers.add(new RegexSearchHandler(requestID, regexPattern, l->{
+        synchronized (System.out) {
+          System.out.println(l);
+        }
+      }));
     } else {
       throw new IllegalArgumentException("Unsupported search type: " + type);
     }
@@ -202,5 +167,10 @@ public class Search implements Runnable {
 //      long end = System.currentTimeMillis();
 //      System.out.println("Time taken: " + (end - start) + " ms");
 //    }
+  }
+
+  @Override
+  protected Logger getLogger() {
+    return logger;
   }
 }
