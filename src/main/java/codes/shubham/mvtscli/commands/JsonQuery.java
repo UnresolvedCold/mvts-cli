@@ -9,7 +9,12 @@ import codes.shubham.mvtscli.helpers.FileResolver;
 import codes.shubham.mvtscli.helpers.Tuple2;
 import codes.shubham.mvtscli.index.IndexPosition;
 import codes.shubham.mvtscli.index.Indexer;
+import codes.shubham.mvtscli.query.JsonData;
+import codes.shubham.mvtscli.query.handler.IQueryHandler;
+import codes.shubham.mvtscli.query.handler.JsonPathQueryHandler;
+import codes.shubham.mvtscli.query.handler.TaskFilter;
 import codes.shubham.mvtscli.search.IOSearchMode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import picocli.CommandLine;
 
@@ -25,15 +30,17 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
 
   private static final Logger logger = org.slf4j.LoggerFactory.getLogger(JsonQuery.class);
 
+  // query string
+  // if starting with r (for recipie) then it's a recipie query
+  // else it is a jmespath query
   @CommandLine.Parameters(index = "0",
       description = "query")
   String query;
 
-  record JsonData(String message, String output) {}
-
   @Override
   public void run() {
     Indexer indexer = new Indexer(ApplicationProperties.RECENT_SEARCH_INDEX_FILE.getValue());
+
     Set<String> reqIds = indexer.getAllIndexData().keySet();
 
     logger.trace("Recently searched request IDs: {}", reqIds);
@@ -51,6 +58,20 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
 
     logger.trace("Collected JSON data for request IDs: {}", requestIDToJsonData.keySet());
 
+    List<Object> results = new ArrayList<>();
+
+    requestIDToJsonData.forEach(
+        (k, v) -> {
+          IQueryHandler handler = new JsonPathQueryHandler();
+          var res = handler.handle(k, v.message(), v.output(), query);
+          results.add(res);
+        });
+
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      String finalOutput = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(results);
+      System.out.println(finalOutput);
+    } catch (Exception ignored){}
   }
 
   private void handleAndCollectJsondata(Set<String> reqIds, List<Tuple2<IOSearchMode, ISearchedResultHandler>> modes, Indexer indexer, List<Indexer> indexers) {
@@ -118,7 +139,9 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
   }
 
   public static void main(String[] args){
-    CommandLine.run(new JsonQuery(), "fr");
+    //    CommandLine.run(new JsonQuery(), "1b987314-259d-4cb8-aebf-501fc15970fa");
+    CommandLine.run(new JsonQuery(),
+        "$.schedule.assignments[?(@.task_key=='1b987314-259d-4cb8-aebf-501fc15970fa')]");
   }
 
   @Override
