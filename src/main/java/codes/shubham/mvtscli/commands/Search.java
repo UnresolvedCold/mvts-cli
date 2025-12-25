@@ -67,7 +67,6 @@ public class Search implements Runnable {
       pool.submit(() -> {
         long offset1 = 0;
         long offset2 = -1;
-        boolean searchingIndexed = false;
 
         IndexPosition position = indexer.search(requestID, file.getFileName().toString());
 
@@ -76,7 +75,6 @@ public class Search implements Runnable {
               requestID, file, position.start(), position.end());
           offset1 = position.start().offset();
           offset2 = position.end().offset();
-          searchingIndexed = true;
         }
 
         try {
