@@ -1,10 +1,10 @@
 package codes.shubham.mvtscli.search;
 
+import codes.shubham.mvtscli.handlers.ILogHandler;
 import codes.shubham.mvtscli.source.ILogSource;
 import codes.shubham.mvtscli.source.LogLine;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 /***
@@ -17,6 +17,8 @@ public final class LogRunner {
 
   public void run(ILogSource source, List<ILogHandler> handlerList) {
     try (source) {
+      handlerList.forEach(ILogHandler::init);
+
       Stream<LogLine> lines = source.logLines();
       Iterable<LogLine> iter = (Iterable<LogLine>) lines::iterator;
 
@@ -25,6 +27,8 @@ public final class LogRunner {
 
         handle(handlerList, logLine);
       }
+
+      handlerList.forEach(ILogHandler::commit);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

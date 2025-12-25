@@ -101,4 +101,8 @@ public class IndexData {
 
     return data;
   }
+
+  public Map<String, Map<String, IndexPosition>> getAll() {
+    return index;
+  }
 }

@@ -1,6 +1,6 @@
 package codes.shubham.mvtscli.index;
 
-import codes.shubham.mvtscli.search.ILogSearchHandler;
+import codes.shubham.mvtscli.handlers.ILogSearchHandler;
 import codes.shubham.mvtscli.source.LogLine;
 
 public class IndexValidateHandler implements ILogSearchHandler {

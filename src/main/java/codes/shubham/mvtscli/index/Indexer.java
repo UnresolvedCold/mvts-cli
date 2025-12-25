@@ -1,5 +1,6 @@
 package codes.shubham.mvtscli.index;
 
+import codes.shubham.mvtscli.ApplicationProperties;
 import codes.shubham.mvtscli.source.LogLine;
 import org.slf4j.Logger;
 
@@ -17,14 +18,20 @@ public class Indexer  {
   private IndexData tempIndexData;
   private boolean isIndexUpdated = false;
 
-  private static final Path INDEX_FILE =
-      Path.of(System.getProperty("user.home"), ".mvts", "index.db");
+  private final Path INDEX_FILE;
 
   private final static Logger logger = org.slf4j.LoggerFactory.getLogger(Indexer.class);
 
-  public Indexer() {
+  public Indexer(String indexFileName) {
+    INDEX_FILE = Path.of(ApplicationProperties.USER_HOME_DIR.getValue(),
+        ApplicationProperties.MVTS_HOME_DIR.getValue(),
+        indexFileName);
     indexData = loadFromFile();
     tempIndexData = new IndexData();
+  }
+
+  public Map<String, Map<String, IndexPosition>> getAllIndexData() {
+    return indexData.getAll();
   }
 
   public IndexPosition search(String requestID, String filePath) {

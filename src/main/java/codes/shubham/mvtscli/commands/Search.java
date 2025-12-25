@@ -1,11 +1,13 @@
 package codes.shubham.mvtscli.commands;
 
+import codes.shubham.mvtscli.ApplicationProperties;
 import codes.shubham.mvtscli.helpers.FileResolver;
-import codes.shubham.mvtscli.index.IndexHandler;
 import codes.shubham.mvtscli.index.IndexPosition;
-import codes.shubham.mvtscli.index.IndexValidateHandler;
 import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.search.*;
+import codes.shubham.mvtscli.handlers.ILogHandler;
+import codes.shubham.mvtscli.handlers.MessageSearchHandler;
+import codes.shubham.mvtscli.handlers.RegexSearchHandler;
 import codes.shubham.mvtscli.source.ILogSource;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -59,47 +61,49 @@ public class Search implements Runnable {
   public void run() {
     final List<Path> targets = getPaths();
 
-    Indexer indexer = new Indexer();
+
+    List<Indexer> indexers = new ArrayList<>(List.of(
+        new Indexer(ApplicationProperties.RECENT_SEARCH_INDEX_FILE.getValue()),
+        new Indexer(ApplicationProperties.MAIN_INDEX_FILE.getValue())
+    ));
 
     logger.debug("Searching files: {}", targets);
 
     for (Path file : targets) {
-      pool.submit(() -> {
-        long offset1 = 0;
-        long offset2 = -1;
 
-        IndexPosition position = indexer.search(requestID, file.getFileName().toString());
+      final List<ILogHandler> handlers = getLogHandlers();
 
-        if (position != null) {
-          logger.debug("Found index position for {} in file {}: {} - {}",
-              requestID, file, position.start(), position.end());
-          offset1 = position.start().offset();
-          offset2 = position.end().offset();
-        }
+      pool.submit(
+          () -> {
+            long offset1 = 0;
+            long offset2 = -1;
 
-        try {
-          ILogSource source = FileResolver.getSource(file, offset1, offset2);
+            for (Indexer indexer : indexers) {
+              IndexPosition position = indexer.search(requestID, file.getFileName().toString());
 
-          LogRunner runner = new LogRunner();
-          List<ILogHandler> handlers = new ArrayList<>();
+              if (position != null) {
+                logger.debug(
+                    "Found index position for {} in file {}: {} - {}",
+                    requestID,
+                    file,
+                    position.start(),
+                    position.end());
 
-          IOSearchMode mode = IOSearchMode.getMode(type);
+                offset1 = position.start().offset();
+                offset2 = position.end().offset();
+              }
+            }
 
-          if (mode == IOSearchMode.MESSAGE || mode == IOSearchMode.OUTPUT) {
-            logger.trace("Searching for input/output, requestID: {}", requestID);
-            handlers.add(new MessageSearchHandler(requestID, mode.marker()));
-          } else if (mode == IOSearchMode.REGEX) {
-            logger.trace("Searching for regex pattern, requestID: {}, regex: {}", requestID, regexPattern);
-            handlers.add(new RegexSearchHandler(requestID, regexPattern));
-          } else {
-            throw new IllegalArgumentException("Unsupported search type: " + type);
-          }
+            try {
+              ILogSource source = FileResolver.getSource(file, offset1, offset2);
 
-          runner.run(source, handlers);
-        } catch (Exception e) {
-          logger.error("Failed: " + file + " -> " + e.getMessage());
-        }
-      });
+              LogRunner runner = new LogRunner();
+
+              runner.run(source, handlers);
+            } catch (Exception e) {
+              logger.error("Failed: " + file + " -> " + e.getMessage());
+            }
+          });
     }
 
     pool.shutdown();
@@ -108,6 +112,23 @@ public class Search implements Runnable {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private List<ILogHandler> getLogHandlers() {
+    List<ILogHandler> handlers = new ArrayList<>();
+
+    IOSearchMode mode = IOSearchMode.getMode(type);
+
+    if (mode == IOSearchMode.MESSAGE || mode == IOSearchMode.OUTPUT) {
+      logger.trace("Searching for input/output, requestID: {}", requestID);
+      handlers.add(new MessageSearchHandler(requestID, mode.marker()));
+    } else if (mode == IOSearchMode.REGEX) {
+      logger.trace("Searching for regex pattern, requestID: {}, regex: {}", requestID, regexPattern);
+      handlers.add(new RegexSearchHandler(requestID, regexPattern));
+    } else {
+      throw new IllegalArgumentException("Unsupported search type: " + type);
+    }
+    return handlers;
   }
 
   private List<Path> getPaths() {
@@ -153,33 +174,33 @@ public class Search implements Runnable {
     {
       CommandLine commandLine = new CommandLine(new Search());
       long start = System.currentTimeMillis();
-      commandLine.execute(new String[] {"r", "a_cold"});
+      commandLine.execute(new String[] {"o", "apbxfVhCQJKQws63f4TUng==", "-d", "2025-12-04", "-d", "2025-12-25"});
       long end = System.currentTimeMillis();
       System.out.println("Time taken: " + (end - start) + " ms");
     }
 
-    {
-      CommandLine commandLine = new CommandLine(new Search());
-      long start = System.currentTimeMillis();
-      commandLine.execute(new String[] {"o", "b_cold"});
-      long end = System.currentTimeMillis();
-      System.out.println("Time taken: " + (end - start) + " ms");
-    }
-
-    {
-      CommandLine commandLine = new CommandLine(new Search());
-      long start = System.currentTimeMillis();
-      commandLine.execute(new String[] {"o", "c_cold"});
-      long end = System.currentTimeMillis();
-      System.out.println("Time taken: " + (end - start) + " ms");
-    }
-
-    {
-      CommandLine commandLine = new CommandLine(new Search());
-      long start = System.currentTimeMillis();
-      commandLine.execute(new String[] {"m", "d_cold"});
-      long end = System.currentTimeMillis();
-      System.out.println("Time taken: " + (end - start) + " ms");
-    }
+//    {
+//      CommandLine commandLine = new CommandLine(new Search());
+//      long start = System.currentTimeMillis();
+//      commandLine.execute(new String[] {"o", "b_cold"});
+//      long end = System.currentTimeMillis();
+//      System.out.println("Time taken: " + (end - start) + " ms");
+//    }
+//
+//    {
+//      CommandLine commandLine = new CommandLine(new Search());
+//      long start = System.currentTimeMillis();
+//      commandLine.execute(new String[] {"o", "c_cold"});
+//      long end = System.currentTimeMillis();
+//      System.out.println("Time taken: " + (end - start) + " ms");
+//    }
+//
+//    {
+//      CommandLine commandLine = new CommandLine(new Search());
+//      long start = System.currentTimeMillis();
+//      commandLine.execute(new String[] {"m", "d_cold"});
+//      long end = System.currentTimeMillis();
+//      System.out.println("Time taken: " + (end - start) + " ms");
+//    }
   }
 }

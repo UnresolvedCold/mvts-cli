@@ -7,7 +7,11 @@ import java.util.Properties;
 
 public enum ApplicationProperties {
   MVTS_JAR_FILE_LOCATION("MVTS_JAR_FILE_LOCATION", "/home/shubham.codes/"),
-  LOG_DIR("LOG_DIR", "data/logs");
+  LOG_DIR("LOG_DIR", "data/logs"),
+  MVTS_HOME_DIR("MVTS_HOME_DIR", ".mvts"),
+  USER_HOME_DIR("USER_HOME_DIR", System.getProperty("user.home")),
+  MAIN_INDEX_FILE("MAIN_INDEX_FILE", "index.idx"),
+  RECENT_SEARCH_INDEX_FILE("RECENT_SEARCH_INDEX_FILE", "recent_search.idx");
 
   private String key;
   private String value;

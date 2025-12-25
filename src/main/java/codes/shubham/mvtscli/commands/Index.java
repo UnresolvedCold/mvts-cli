@@ -1,13 +1,11 @@
 package codes.shubham.mvtscli.commands;
 
+import codes.shubham.mvtscli.ApplicationProperties;
 import codes.shubham.mvtscli.helpers.FileResolver;
-import codes.shubham.mvtscli.index.IndexHandler;
-import codes.shubham.mvtscli.index.IndexPosition;
-import codes.shubham.mvtscli.index.IndexValidateHandler;
+import codes.shubham.mvtscli.handlers.IndexHandler;
 import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.search.*;
 import codes.shubham.mvtscli.source.ILogSource;
-import codes.shubham.mvtscli.source.position.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -18,11 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 @CommandLine.Command(
     name = "index",
@@ -44,7 +38,7 @@ public class Index implements Runnable {
     lockFile();
 
     List<Path> targets = getPaths();
-    Indexer indexer = new Indexer();
+    Indexer indexer = new Indexer(ApplicationProperties.MAIN_INDEX_FILE.getValue());
 
     logger.info("Indexing started for {}", targets);
 

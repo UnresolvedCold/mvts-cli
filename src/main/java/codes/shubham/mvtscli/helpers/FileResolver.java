@@ -45,4 +45,8 @@ public class FileResolver {
 
     return new PlainFileSource(file, offset1, offset2);
   }
+
+  public static void saveToFile(Path file, String content) throws IOException {
+    Files.writeString(file, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+  }
 }

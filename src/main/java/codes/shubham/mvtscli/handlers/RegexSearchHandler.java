@@ -1,10 +1,10 @@
-package codes.shubham.mvtscli.search;
+package codes.shubham.mvtscli.handlers;
 
 import codes.shubham.mvtscli.source.LogLine;
 
 public class RegexSearchHandler extends AbstractSearchHandler {
   public RegexSearchHandler(String requestID, String searchTerm) {
-    super(".*" + requestID + ".*" + searchTerm + ".*");
+    super(requestID,".*" + requestID + ".*" + searchTerm + ".*");
   }
 
   @Override

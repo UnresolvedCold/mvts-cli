@@ -1,7 +1,6 @@
-package codes.shubham.mvtscli.index;
+package codes.shubham.mvtscli.handlers;
 
-import codes.shubham.mvtscli.search.ILogHandler;
-import codes.shubham.mvtscli.search.ILogSearchHandler;
+import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.source.LogLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,5 +21,10 @@ public class IndexHandler implements ILogSearchHandler {
   @Override
   public boolean isFound() {
     return false;
+  }
+
+  @Override
+  public void commit() {
+    indexer.commit();
   }
 }

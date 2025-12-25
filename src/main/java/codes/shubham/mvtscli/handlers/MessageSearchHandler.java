@@ -1,4 +1,4 @@
-package codes.shubham.mvtscli.search;
+package codes.shubham.mvtscli.handlers;
 
 import codes.shubham.mvtscli.source.LogLine;
 
@@ -7,7 +7,7 @@ public class MessageSearchHandler extends AbstractSearchHandler {
   String marker;
 
   public MessageSearchHandler(String requestID, String marker) {
-    super(".*"+ marker +".*"+requestID+".*");
+    super(requestID,".*"+ marker +".*"+requestID+".*");
     this.marker = marker;
   }
 
