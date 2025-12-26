@@ -10,6 +10,8 @@ import codes.shubham.mvtscli.helpers.Tuple2;
 import codes.shubham.mvtscli.index.IndexPosition;
 import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.query.JsonData;
+import codes.shubham.mvtscli.query.QueryType;
+import codes.shubham.mvtscli.query.RecipieHandlerFactory;
 import codes.shubham.mvtscli.query.handler.IQueryHandler;
 import codes.shubham.mvtscli.query.handler.JsonPathQueryHandler;
 import codes.shubham.mvtscli.query.handler.TaskFilter;
@@ -30,27 +32,37 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
 
   private static final Logger logger = org.slf4j.LoggerFactory.getLogger(JsonQuery.class);
 
+  @CommandLine.Parameters(index = "0",
+      description = "jmespath|j|recipie|r")
+  String queryType;
+
   // query string
   // if starting with r (for recipie) then it's a recipie query
   // else it is a jmespath query
-  @CommandLine.Parameters(index = "0",
-      description = "query")
+  @CommandLine.Parameters(index = "1",
+      description = "query or recipie name")
   String query;
+
+  @CommandLine.Option(
+      names = {"--params", "-p"},
+      description = "dates to search",
+      arity = "0..*"
+  )
+  List<String> params;
 
   @Override
   public void run() {
     Indexer indexer = new Indexer(ApplicationProperties.RECENT_SEARCH_INDEX_FILE.getValue());
+    Map<String, JsonData> requestIDToJsonData = new ConcurrentHashMap<>();
+
+    QueryType qt = QueryType.fromString(queryType);
+    IQueryHandler queryHandler = getQueryHandler(qt);
 
     Set<String> reqIds = indexer.getAllIndexData().keySet();
 
     logger.trace("Recently searched request IDs: {}", reqIds);
 
-
-    Map<String, JsonData> requestIDToJsonData = new ConcurrentHashMap<>();
-
     final List<Indexer> indexers = getIndexers();
-
-
     final List<Tuple2<IOSearchMode, ISearchedResultHandler>> modes
         = getModes(requestIDToJsonData);
 
@@ -62,8 +74,19 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
 
     requestIDToJsonData.forEach(
         (k, v) -> {
-          IQueryHandler handler = new JsonPathQueryHandler();
-          var res = handler.handle(k, v.message(), v.output(), query);
+          List<String> finalParams = new ArrayList<>();
+
+          if (qt == QueryType.JMESPATH) {
+            finalParams.add(query);
+          }
+
+          if (qt == QueryType.RECIPIE) {
+            if (params != null) {
+              finalParams.addAll(params);
+            }
+          }
+
+          var res = queryHandler.handle(k, v.message(), v.output(), finalParams.toArray(String[]::new));
           results.add(res);
         });
 
@@ -72,6 +95,16 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
       String finalOutput = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(results);
       System.out.println(finalOutput);
     } catch (Exception ignored){}
+  }
+
+  private IQueryHandler getQueryHandler(QueryType qt) {
+    if (qt == QueryType.JMESPATH) {
+      return new JsonPathQueryHandler();
+    } else if (qt == QueryType.RECIPIE) {
+      return RecipieHandlerFactory.getInstance().getRecipie(query);
+    } else {
+      throw new IllegalArgumentException("Unsupported QueryType: " + qt);
+    }
   }
 
   private void handleAndCollectJsondata(Set<String> reqIds, List<Tuple2<IOSearchMode, ISearchedResultHandler>> modes, Indexer indexer, List<Indexer> indexers) {
@@ -139,9 +172,9 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
   }
 
   public static void main(String[] args){
-    //    CommandLine.run(new JsonQuery(), "1b987314-259d-4cb8-aebf-501fc15970fa");
-    CommandLine.run(new JsonQuery(),
-        "$.schedule.assignments[?(@.task_key=='1b987314-259d-4cb8-aebf-501fc15970fa')]");
+//        CommandLine.run(new JsonQuery(), "r","task","-p", "1b987314-259d-4cb8-aebf-501fc15970fa");
+//    CommandLine.run(new JsonQuery(),"j",
+//        "$.schedule.assignments[?(@.task_key=='1b987314-259d-4cb8-aebf-501fc15970fa')]");
   }
 
   @Override
