@@ -18,17 +18,22 @@ public class Indexer  {
   private IndexData indexData;
   private IndexData tempIndexData;
   private boolean isIndexUpdated = false;
+  private boolean freshIndex = false;
 
   private final Path INDEX_FILE;
 
   private final static Logger logger = org.slf4j.LoggerFactory.getLogger(Indexer.class);
 
-  public Indexer(String indexFileName) {
+  public Indexer(String indexFileName, boolean freshIndex) {
     INDEX_FILE = Path.of(ApplicationProperties.USER_HOME_DIR.getValue(),
         ApplicationProperties.MVTS_HOME_DIR.getValue(),
         indexFileName);
-    indexData = loadFromFile();
-    tempIndexData = new IndexData();
+    this.freshIndex = freshIndex;
+    init();
+  }
+
+  public Indexer(String indexFileName) {
+    this(indexFileName, false);
   }
 
   public Map<String, Map<String, IndexPosition>> getAllIndexData() {
@@ -73,6 +78,7 @@ public class Indexer  {
   }
 
   private boolean isIndexPresent(LogLine logline, String requestID) {
+    if (freshIndex) return false;
     return indexData.getIndexPositon(requestID, logline.filePath()) != null
         && indexData.getIndexPositon(requestID, logline.filePath()).start() != null
         && indexData.getIndexPositon(requestID, logline.filePath()).end() != null
@@ -138,5 +144,12 @@ public class Indexer  {
   public void commit() {
     commitIndex();
     commitToFile();
+    tempIndexData = indexData;
+  }
+
+  public void init() {
+    indexData = loadFromFile();
+    if (freshIndex) tempIndexData = new IndexData();
+    else tempIndexData = indexData;
   }
 }

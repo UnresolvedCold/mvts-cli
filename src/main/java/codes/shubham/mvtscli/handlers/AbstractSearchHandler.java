@@ -37,6 +37,11 @@ public abstract class AbstractSearchHandler implements ILogSearchHandler {
   protected abstract void internalHandle(LogLine logLine);
 
   @Override
+  public void init() {
+    indexHandler.init();
+  }
+
+  @Override
   public void commit() {
     indexHandler.commit();
   }

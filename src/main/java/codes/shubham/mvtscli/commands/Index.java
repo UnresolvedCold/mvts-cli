@@ -38,7 +38,7 @@ public class Index implements Runnable {
     lockFile();
 
     List<Path> targets = getPaths();
-    Indexer indexer = new Indexer(ApplicationProperties.MAIN_INDEX_FILE.getValue());
+    Indexer indexer = new Indexer(ApplicationProperties.MAIN_INDEX_FILE.getValue(), true);
 
     logger.info("Indexing started for {}", targets);
 

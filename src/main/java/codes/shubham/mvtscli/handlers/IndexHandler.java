@@ -27,4 +27,8 @@ public class IndexHandler implements ILogSearchHandler {
   public void commit() {
     indexer.commit();
   }
+
+  @Override
+  public void init() {
+  }
 }

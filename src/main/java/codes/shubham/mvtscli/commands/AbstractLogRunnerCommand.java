@@ -17,13 +17,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractLogRunnerCommand {
-  private ExecutorService pool = Executors.newFixedThreadPool(
-      Math.max(1, Runtime.getRuntime().availableProcessors())
-  );
 
   protected abstract Logger getLogger();
 
   protected void handle(String requestID, List<Path> targets, List<Indexer> indexers, List<ILogHandler> handlers) {
+    ExecutorService pool = Executors.newFixedThreadPool(
+        Math.max(1, Runtime.getRuntime().availableProcessors())
+    );
+
     for (Path file : targets) {
       pool.submit(
           () -> {
