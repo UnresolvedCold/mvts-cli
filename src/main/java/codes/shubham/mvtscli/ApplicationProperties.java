@@ -30,7 +30,7 @@ public enum ApplicationProperties {
       envFileLocation = Paths.get(
           System.getProperty("user.home"),
           ".config",
-          "mvts-cli",
+          "mvts",
           "mvts.cli.properties"
       ).toString();
     }
