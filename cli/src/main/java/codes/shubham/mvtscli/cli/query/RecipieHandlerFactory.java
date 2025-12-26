@@ -45,13 +45,6 @@ public class RecipieHandlerFactory {
   }
 
   private void register(IQueryHandler handler) {
-    String name = handler.name();
-
-    if (queryHandlerMap.containsKey(name)) {
-      throw new IllegalStateException(
-          "Duplicate query handler: " + name);
-    }
-
-    queryHandlerMap.put(name, handler);
+    queryHandlerMap.putIfAbsent(handler.name(), handler);
   }
 }
