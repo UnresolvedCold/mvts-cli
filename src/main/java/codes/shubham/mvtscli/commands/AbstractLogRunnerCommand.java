@@ -6,9 +6,11 @@ import codes.shubham.mvtscli.index.IndexPosition;
 import codes.shubham.mvtscli.index.Indexer;
 import codes.shubham.mvtscli.search.LogRunner;
 import codes.shubham.mvtscli.source.ILogSource;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,5 +66,42 @@ public abstract class AbstractLogRunnerCommand {
     }
   }
 
+  protected List<Path> getPaths(List<String> dates) {
+    List<Path> targets = new ArrayList<>();
+
+    if (dates == null || dates.isEmpty()) {
+      return FileResolver.resolve("scheduler.log");
+    }
+
+    List<DateTime> dateTimes = dates.stream()
+        .map(DateTime::parse)
+        .toList();
+
+    DateTime today = DateTime.now().withTimeAtStartOfDay();
+
+    boolean containsToday = dateTimes.stream()
+        .anyMatch(dt -> dt.withTimeAtStartOfDay().isEqual(today));
+
+    if (containsToday) {
+      targets.addAll(FileResolver.resolve("scheduler.log"));
+    }
+
+    for (DateTime dt : dateTimes) {
+      if (dt.withTimeAtStartOfDay().isEqual(today)) {
+        continue;
+      }
+
+      String date = dt.toString("yyyy-MM-dd");
+      String pattern = "scheduler." + date + ".*.log.gz";
+
+      try {
+        targets.addAll(FileResolver.resolve(pattern));
+      } catch (Exception ignored) {
+        // intentionally ignore missing logs
+      }
+    }
+
+    return targets;
+  }
 
 }

@@ -55,7 +55,7 @@ public class Search extends AbstractLogRunnerCommand implements Runnable {
 
   @Override
   public void run() {
-    final List<Path> targets = getPaths();
+    final List<Path> targets = getPaths(dates);
 
 
     List<Indexer> indexers = new ArrayList<>(List.of(
@@ -94,44 +94,6 @@ public class Search extends AbstractLogRunnerCommand implements Runnable {
       throw new IllegalArgumentException("Unsupported search type: " + type);
     }
     return handlers;
-  }
-
-  private List<Path> getPaths() {
-    List<Path> targets = new ArrayList<>();
-
-    if (dates == null || dates.isEmpty()) {
-      return FileResolver.resolve("scheduler.log");
-    }
-
-    List<DateTime> dateTimes = dates.stream()
-        .map(DateTime::parse)
-        .toList();
-
-    DateTime today = DateTime.now().withTimeAtStartOfDay();
-
-    boolean containsToday = dateTimes.stream()
-        .anyMatch(dt -> dt.withTimeAtStartOfDay().isEqual(today));
-
-    if (containsToday) {
-      targets.addAll(FileResolver.resolve("scheduler.log"));
-    }
-
-    for (DateTime dt : dateTimes) {
-      if (dt.withTimeAtStartOfDay().isEqual(today)) {
-        continue;
-      }
-
-      String date = dt.toString("yyyy-MM-dd");
-      String pattern = "scheduler." + date + ".*.log.gz";
-
-      try {
-        targets.addAll(FileResolver.resolve(pattern));
-      } catch (Exception ignored) {
-        // intentionally ignore missing logs
-      }
-    }
-
-    return targets;
   }
 
   public static void main(String[] args){
