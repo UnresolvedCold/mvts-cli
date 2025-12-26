@@ -25,4 +25,9 @@ public class JsonPathQueryHandler extends AbstractFilterHandler{
 
     return Map.of("result", pJ.read(query));
   }
+
+  @Override
+  public String name() {
+    return "jmespath";
+  }
 }

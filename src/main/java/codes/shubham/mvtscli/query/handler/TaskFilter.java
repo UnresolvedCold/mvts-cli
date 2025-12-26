@@ -70,4 +70,8 @@ public class TaskFilter extends AbstractFilterHandler {
     }
   }
 
+  @Override
+  public String name() {
+    return "task";
+  }
 }

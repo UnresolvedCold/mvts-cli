@@ -37,4 +37,14 @@ public abstract class AbstractFilterHandler implements IQueryHandler {
       String requestID, String messageJson, String ... params) throws Exception;
   protected abstract Map<String, Object> getFilteredOutput(
       String requestID, String outputJson, String ... params) throws Exception;
+
+  @Override
+  public String description() {
+    return this.getClass().getSimpleName();
+  }
+
+  @Override
+  public String name() {
+    return this.getClass().getSimpleName();
+  }
 }

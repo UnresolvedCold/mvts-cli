@@ -1,20 +1,18 @@
 package codes.shubham.mvtscli.query;
 
 import codes.shubham.mvtscli.query.handler.IQueryHandler;
-import codes.shubham.mvtscli.query.handler.JsonPathQueryHandler;
-import codes.shubham.mvtscli.query.handler.TaskFilter;
 
 import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RecipieHandlerFactory {
-  private static RecipieHandlerFactory instance;
-  private Map<String, IQueryHandler> queryHandlerMap;
+  private static volatile RecipieHandlerFactory instance;
+  private final Map<String, IQueryHandler> queryHandlerMap = new ConcurrentHashMap<>();
 
   private RecipieHandlerFactory() {
-    this.queryHandlerMap = Map.of(
-        "task", new TaskFilter(),
-        "jmespath", new JsonPathQueryHandler()
-    );
+    loadBuiltIns();
+    loadPlugins();
   }
 
   public static RecipieHandlerFactory getInstance() {
@@ -29,6 +27,31 @@ public class RecipieHandlerFactory {
   }
 
   public IQueryHandler getRecipie(String recipieName) {
+    if (!queryHandlerMap.containsKey(recipieName)) {
+      throw new IllegalArgumentException(
+          "Unknown recipie: " + recipieName);
+    }
     return queryHandlerMap.get(recipieName);
+  }
+
+  private void loadBuiltIns() {
+    ServiceLoader.load(IQueryHandler.class)
+        .forEach(this::register);
+  }
+
+  private void loadPlugins() {
+    PluginLoader.load()
+        .forEach(this::register);
+  }
+
+  private void register(IQueryHandler handler) {
+    String name = handler.name();
+
+    if (queryHandlerMap.containsKey(name)) {
+      throw new IllegalStateException(
+          "Duplicate query handler: " + name);
+    }
+
+    queryHandlerMap.put(name, handler);
   }
 }

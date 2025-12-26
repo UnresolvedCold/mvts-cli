@@ -8,4 +8,7 @@ public interface IQueryHandler {
       String message,
       String output,
       String ...params);
+
+  public String name();
+  public String description();
 }

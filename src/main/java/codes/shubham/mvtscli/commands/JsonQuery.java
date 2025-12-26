@@ -164,6 +164,7 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
     for (String requestID : reqIds) {
       List<ILogHandler> handlers = new ArrayList<>();
 
+      // eyes: both handlers should have a common indexer
       for (Tuple2<IOSearchMode, ISearchedResultHandler> mode : modes) {
         handlers.add(
             new MessageSearchHandler(
@@ -179,8 +180,8 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
         targets.add(Path.of(ApplicationProperties.LOG_DIR.getValue(), file));
       }
 
-      if (dates != null && !dates.isEmpty()) {
-        targets = getPaths(dates);
+      if (files.isEmpty()) {
+        targets.addAll(getPaths(dates));
       }
 
       handle(requestID, targets, indexers, handlers);
@@ -236,8 +237,9 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
   }
 
   public static void main(String[] args) {
-        CommandLine.run(new JsonQuery(), "r","task","-p", "1b987314-259d-4cb8-aebf-501fc15970fa",
-            "-o", "$[0].message", "-ids", "apbxfVhCQJKQws63f4TUng==", "--dates", "2025-12-04");
+        CommandLine.run(new JsonQuery(), "r","task","-p", "1b987314-259d-4cb8-aebf-501fc15970fa"
+            , "-ids", "QTrprxq8RGyYcuAou862gw==", "3RD4xOJwSCS1lP7yMjGLwQ==");
+        //-ids QTrprxq8RGyYcuAou862gw== 3RD4xOJwSCS1lP7yMjGLwQ== --dates 2025-12-26
 //    CommandLine.run(new JsonQuery(),"j",
 //        "$.schedule.assignments[?(@.task_key=='1b987314-259d-4cb8-aebf-501fc15970fa')]");
   }
