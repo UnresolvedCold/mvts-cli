@@ -237,11 +237,14 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
   }
 
   public static void main(String[] args) {
-        CommandLine.run(new JsonQuery(), "r","task","-p", "88912acb-9c8e-4248-864f-bd71eeb957d0"
-            , "-ids", "QTrprxq8RGyYcuAou862gw==", "3RD4xOJwSCS1lP7yMjGLwQ==");
+//        CommandLine.run(new JsonQuery(), "r","task","-p", "88912acb-9c8e-4248-864f-bd71eeb957d0"
+//            , "-ids", "QTrprxq8RGyYcuAou862gw==", "3RD4xOJwSCS1lP7yMjGLwQ==");
         //-ids QTrprxq8RGyYcuAou862gw== 3RD4xOJwSCS1lP7yMjGLwQ== --dates 2025-12-26
 //    CommandLine.run(new JsonQuery(),"j",
 //        "$.schedule.assignments[?(@.task_key=='1b987314-259d-4cb8-aebf-501fc15970fa')]");
+
+    CommandLine.run(new JsonQuery(), "r","pps","-p", "1"
+        , "-ids", "QTrprxq8RGyYcuAou862gw==", "3RD4xOJwSCS1lP7yMjGLwQ==");
   }
 
   @Override
