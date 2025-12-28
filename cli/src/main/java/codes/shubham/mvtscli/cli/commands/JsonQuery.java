@@ -5,6 +5,7 @@ import codes.shubham.mvtscli.cli.handlers.ILogHandler;
 import codes.shubham.mvtscli.cli.handlers.MessageSearchHandler;
 import codes.shubham.mvtscli.cli.handlers.searchresult.ISearchedResultHandler;
 import codes.shubham.mvtscli.cli.helpers.FileResolver;
+import codes.shubham.mvtscli.cli.helpers.Helper;
 import codes.shubham.mvtscli.cli.helpers.Tuple2;
 import codes.shubham.mvtscli.cli.index.Indexer;
 import codes.shubham.mvtscli.cli.query.JsonData;
@@ -133,8 +134,8 @@ public class JsonQuery extends AbstractLogRunnerCommand implements Runnable {
         });
 
     try {
-      ObjectMapper mapper = new ObjectMapper();
-      String finalOutput = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(results);
+      ObjectMapper mapper = Helper.getObjectMapper();
+      String finalOutput = mapper.writeValueAsString(results);
 
       if (outputQuery != null && !outputQuery.isEmpty()) {
         Object outputObj = mapper.readValue(finalOutput, Object.class);
