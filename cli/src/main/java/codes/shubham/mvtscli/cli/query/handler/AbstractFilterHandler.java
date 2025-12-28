@@ -13,13 +13,16 @@ public abstract class AbstractFilterHandler implements IQueryHandler {
 
   protected static final ObjectMapper mapper = new ObjectMapper();
   protected final Configuration conf =
-      Configuration.builder().options(Option.SUPPRESS_EXCEPTIONS).build();
+      Configuration.builder()
+          .options(Option.SUPPRESS_EXCEPTIONS)
+          .build();
 
   public Map<String, Object> handle(String requestID, String message, String output, String... params) {
     Map<String, Object> filteredMessage = new HashMap<>();
     try {
       filteredMessage = getFilteredMessage(requestID, message, params);
     } catch (Exception ignored) {
+      System.out.println();
     }
     Map<String, Object> filteredOutput = new HashMap<>();
     try {
