@@ -2,3 +2,4 @@ codes.shubham.mvtscli.cli.query.handler.TaskFilter
 codes.shubham.mvtscli.cli.query.handler.JsonPathQueryHandler
 codes.shubham.mvtscli.cli.query.handler.PPSDetails
 codes.shubham.mvtscli.cli.query.handler.AisleDetails
+codes.shubham.mvtscli.cli.query.handler.BotDetails
