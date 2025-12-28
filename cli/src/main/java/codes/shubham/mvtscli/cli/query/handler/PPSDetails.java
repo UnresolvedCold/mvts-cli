@@ -1,5 +1,6 @@
 package codes.shubham.mvtscli.cli.query.handler;
 
+import codes.shubham.mvtscli.cli.helpers.Helper;
 import codes.shubham.mvtscli.plugin.query.handler.IQueryHandler;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 public class PPSDetails implements IQueryHandler {
-  ObjectMapper mapper = new ObjectMapper();
+  ObjectMapper mapper = Helper.getObjectMapper();
 
   @Override
   public Map<String, Object> handle(String requestID, String message, String output, String... params) {

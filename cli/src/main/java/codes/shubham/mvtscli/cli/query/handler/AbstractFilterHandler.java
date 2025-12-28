@@ -1,5 +1,6 @@
 package codes.shubham.mvtscli.cli.query.handler;
 
+import codes.shubham.mvtscli.cli.helpers.Helper;
 import codes.shubham.mvtscli.plugin.query.handler.IQueryHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
@@ -11,7 +12,7 @@ import java.util.Map;
 
 public abstract class AbstractFilterHandler implements IQueryHandler {
 
-  protected static final ObjectMapper mapper = new ObjectMapper();
+  protected static final ObjectMapper mapper = Helper.getObjectMapper();
   protected final Configuration conf =
       Configuration.builder()
           .options(Option.SUPPRESS_EXCEPTIONS)
